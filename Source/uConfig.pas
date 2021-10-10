@@ -20,9 +20,6 @@ type
     class destructor Destroy;
   private
     FIniFile: TMemIniFile;
-    FDarkModeEnabled: Boolean;
-    FLogBroker: string;
-    FLogService: string;
     function GetDarkModeEnabled: Boolean;
     procedure SetDarkModeEnabled(const Value: Boolean);
     function GetLastEditPath: string;

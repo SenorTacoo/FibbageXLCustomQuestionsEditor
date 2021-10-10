@@ -52,7 +52,6 @@ type
     FQuestion: IQuestion;
     FFormCreated: Boolean;
     FCurrentlyPlayingMode: TAudioType;
-    FDeleteAudioOnSave: Boolean;
     FRecordedData: TBytes;
 
     procedure FillDevices;

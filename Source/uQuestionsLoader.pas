@@ -35,12 +35,6 @@ type
     FId: Integer;
     [JSONMarshalledAttribute(False)]
     FQuestionType: TQuestionType;
-//    [JSONMarshalledAttribute(False)]
-//    FQuestionAudioPath: string;
-//    [JSONMarshalledAttribute(False)]
-//    FAnswerAudioPath: string;
-//    [JSONMarshalledAttribute(False)]
-//    FBumperAudioPath: string;
     [JSONMarshalledAttribute(False)]
     FQuestionAudioBytes: TBytes;
     [JSONMarshalledAttribute(False)]
@@ -59,7 +53,6 @@ type
     procedure SetQuestionAudioName(const AName: string);
     procedure SetAnswerAudioName(const AName: string);
     procedure SetBumperAudioName(const AName: string);
-    procedure InnerDeleteTempFile(const APath: string);
     procedure CreateAudioFile(const APath: string; const AData: TBytes);
   public
     destructor Destroy; override;
@@ -81,9 +74,6 @@ type
     procedure SetAnswer(const AAnswer: string);
     procedure SetAlternateSpelling(const AAlternateSpelling: string);
 
-//    function GetQuestionAudioPath: string;
-//    function GetAnswerAudioPath: string;
-//    function GetBumperAudioPath: string;
     function GetQuestionAudioData: TBytes;
     function GetAnswerAudioData: TBytes;
     function GetBumperAudioData: TBytes;
@@ -92,17 +82,10 @@ type
     procedure SetAnswerAudioData(const AData: TBytes);
     procedure SetBumperAudioData(const AData: TBytes);
 
-//    procedure SetQuestionAudioPath(const AAudioPath: string);
-//    procedure SetAnswerAudioPath(const AAudioPath: string);
-//    procedure SetBumperAudioPath(const AAudioPath: string);
-
     procedure Save(const APath: string);
 
     function GetQuestionType: TQuestionType;
     procedure SetQuestionType(AQuestionType: TQuestionType);
-    procedure DeleteAnswerAudio;
-    procedure DeleteBumperAudio;
-    procedure DeleteQuestionAudio;
 
     property Fields: TArray<TQuestionField> read FFields write FFields;
   end;
@@ -204,11 +187,9 @@ end;
 
 procedure TQuestionsLoader.FillQuestions(const AMainDir: string; AQuestionsList: TList<IQuestion>);
 var
-  questionDirs: string;
   singleQuestion: TQuestionItem;
   fs: TFileStream;
   sr: TStreamReader;
-  buffer: TBytes;
 begin
   if not Assigned(AQuestionsList) then
     Assert(False, 'AQuestionsList not assigned');
@@ -217,7 +198,6 @@ begin
   for var dir in shortieDirs do
   begin
     var dataFile := TDirectory.GetFiles(dir, '*.jet');
-//    var audioFiles := TDirectory.GetFiles(dir, '*.ogg');
 
     fs := TFileStream.Create(dataFile[0], fmOpenRead);
     sr := TStreamReader.Create(fs);
@@ -285,39 +265,10 @@ end;
 
 destructor TQuestionItem.Destroy;
 begin
-//  InnerDeleteTempFile(GetAnswerAudioPath);
-//  InnerDeleteTempFile(GetBumperAudioPath);
-//  InnerDeleteTempFile(GetQuestionAudioPath);
-
   for var idx := Length(FFields) - 1 downto 0 do
     FreeAndNil(FFields[idx]);
   SetLength(FFields, 0);
   inherited;
-end;
-
-procedure TQuestionItem.InnerDeleteTempFile(const APath: string);
-begin
-  if FileExists(APath) then
-    if APath.StartsWith(TPath.GetTempPath) then
-      TFile.Delete(APath);
-end;
-
-procedure TQuestionItem.DeleteQuestionAudio;
-begin
-//  if FileExists(GetQuestionAudioPath) then
-//    TFile.Delete(GetQuestionAudioPath);
-end;
-
-procedure TQuestionItem.DeleteAnswerAudio;
-begin
-//  if FileExists(GetAnswerAudioPath) then
-//    TFile.Delete(GetAnswerAudioPath);
-end;
-
-procedure TQuestionItem.DeleteBumperAudio;
-begin
-//  if FileExists(GetBumperAudioPath) then
-//    TFile.Delete(GetBumperAudioPath);
 end;
 
 function TQuestionItem.GetAlternateSpelling: string;
@@ -352,11 +303,6 @@ begin
       Break;
     end;
 end;
-
-//function TQuestionItem.GetBumperAudioPath: string;
-//begin
-//  Result := TPath.Combine(FBumperAudioPath, GetBumperAudioName + '.ogg');
-//end;
 
 function TQuestionItem.GetHaveAnswerAudio: Boolean;
 begin
@@ -407,11 +353,6 @@ begin
     end;
 end;
 
-//function TQuestionItem.GetAnswerAudioPath: string;
-//begin
-//  Result := TPath.Combine(FAnswerAudioPath, GetAnswerAudioName + '.ogg');
-//end;
-
 function TQuestionItem.GetId: Integer;
 begin
   Result := FId;
@@ -439,11 +380,6 @@ begin
       Break;
     end;
 end;
-
-//function TQuestionItem.GetQuestionAudioPath: string;
-//begin
-//  Result := TPath.Combine(FQuestionAudioPath, GetQuestionAudioName + '.ogg');
-//end;
 
 function TQuestionItem.GetQuestionType: TQuestionType;
 begin
@@ -522,12 +458,6 @@ begin
     end;
 end;
 
-//procedure TQuestionItem.SetAnswerAudioPath(const AAudioPath: string);
-//begin
-//  FAnswerAudioPath := ExtractFilePath(AAudioPath);
-//  SetAnswerAudioName(ChangeFileExt(ExtractFileName(AAudioPath), ''));
-//end;
-
 procedure TQuestionItem.SetAnswerAudioData(const AData: TBytes);
 begin
   SetLength(FAnswerAudioBytes, Length(AData));
@@ -549,12 +479,6 @@ begin
       Break;
     end;
 end;
-
-//procedure TQuestionItem.SetBumperAudioPath(const AAudioPath: string);
-//begin
-//  FBumperAudioPath := ExtractFilePath(AAudioPath);
-//  SetBumperAudioName(ChangeFileExt(ExtractFileName(AAudioPath), ''));
-//end;
 
 procedure TQuestionItem.SetBumperAudioData(const AData: TBytes);
 begin
@@ -692,12 +616,6 @@ begin
       Break;
     end;
 end;
-
-//procedure TQuestionItem.SetQuestionAudioPath(const AAudioPath: string);
-//begin
-//  FQuestionAudioPath := ExtractFilePath(AAudioPath);
-//  SetQuestionAudioName(ChangeFileExt(ExtractFileName(AAudioPath), ''));
-//end;
 
 procedure TQuestionItem.SetQuestionAudioData(const AData: TBytes);
 begin

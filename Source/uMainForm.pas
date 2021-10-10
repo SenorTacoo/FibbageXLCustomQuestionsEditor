@@ -16,13 +16,9 @@ uses
   ACS_Classes, ACS_DXAudio, ACS_Vorbis, ACS_Converters, ACS_Wave,
   NewACDSAudio, System.Generics.Collections, uRecordForm, FMX.ListBox, 
   System.Messaging, System.DateUtils, uLog, uCategoriesLoader,
-  FMX.Menus, System.StrUtils, uGetTextDlg, FMX.Objects, FMX.DialogService;
+  FMX.Menus, System.StrUtils, uGetTextDlg, FMX.Objects, FMX.DialogService, uAsyncAction;
 
 type
-  TRemoveProjectOption = (rpoFullWipe);
-
-  TRemoveProjectOptions = set of TRemoveProjectOption;
-
   TQuestionScrollItem = class(TPanel)
   private
     FDetails: TLabel;
@@ -212,6 +208,7 @@ type
     miEditProjectQuestions: TMenuItem;
     bSaveQuestionsAs: TButton;
     aSaveProjectAs: TAction;
+    pLoading: TPanel;
     procedure lDarkModeClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormResize(Sender: TObject);
@@ -269,8 +266,6 @@ type
 
     FProjectVisItems: TProjectScrollItems;
 
-    procedure OnContentInitialized;
-    procedure OnContentError(const AError: string);
     procedure GoToQuestionDetails;
     procedure AddLastChoosenProject;
     procedure InitializeLastQuestionProjects;
@@ -296,12 +291,24 @@ type
     procedure CreateNewFinalQuestion;
     procedure CreateNewShortieQuestion;
     procedure SetDarkMode(AEnabled: Boolean);
-    procedure PostInitializeContent;
     function GetProjectName(out AName: string): Boolean;
     function GetProjectPath(out APath: string): Boolean;
-    procedure ProcessRemoveSelectedProjects(AOptions: TRemoveProjectOptions = []);
     procedure ProcessInitializeProject;
     procedure ClearPreviousData;
+    procedure ClearPreviousProjects;
+    procedure RemoveProjects;
+    procedure InitializeContentTask;
+    procedure PostContentInitialized;
+    procedure PreContentInitialized;
+    procedure OnPostSaveAs;
+    procedure OnPreSaveAs;
+    procedure SaveProc;
+    procedure OnPostSave;
+    procedure OnPreSave;
+    procedure OnRemoveProjectEnd;
+    procedure OnRemoveProjectStart;
+    procedure OnRemoveProject;
+    procedure OnRemoveProjectFullWipe;
   public
     { Public declarations }
   end;
@@ -400,12 +407,15 @@ procedure TFrmMain.aInitializeProjectExecute(Sender: TObject);
 begin
   if Assigned(FContent) then
   begin
-    TDialogService.MessageDialog('Are you sure you want to close currently open project?', TMsgDlgType.mtInformation,
-      [TMsgDlgBtn.mbYes, TMsgDlgBtn.mbNo, TMsgDlgBtn.mbCancel], TMsgDlgBtn.mbNo, 0,
+    TDialogService.MessageDialog('Save changes?', TMsgDlgType.mtInformation,
+      [TMsgDlgBtn.mbYes, TMsgDlgBtn.mbNo, TMsgDlgBtn.mbCancel], TMsgDlgBtn.mbCancel, 0,
       procedure (const AResult: TModalResult)
       begin
-        if AResult = mrYes then // moze save
-          ProcessInitializeProject;
+        case AResult of
+          mrYes: aSaveProject.Execute;
+          mrCancel: Exit;
+        end;
+        ProcessInitializeProject;
       end);
   end
   else
@@ -429,9 +439,38 @@ begin
   end;
   ClearPreviousData;
   TAppConfig.GetInstance.LastEditPath := FSelectedConfiguration.GetPath;
+
+  TAsyncAction.Create(PreContentInitialized, PostContentInitialized, InitializeContentTask).Start;
+end;
+
+procedure TFrmMain.PreContentInitialized;
+begin
+  aiContentLoading.Enabled := True;
+  pLoading.Visible := True;
+  mvHomeOptions.HideMaster;
+end;
+
+procedure TFrmMain.PostContentInitialized;
+begin
+  try
+    FillShortiesScrollBox;
+    FillFinalScrollBox;
+
+    AddLastChoosenProject;
+  finally
+    GoToAllQuestions;
+    pLoading.Visible := False;
+    aiContentLoading.Enabled := False;
+    FLastClickedItemToEdit := nil;
+    aRemoveQuestions.Enabled := False;
+    lProjectQuestions.Text := Format('Questions - %s', [FSelectedConfiguration.GetName]);
+  end;
+end;
+
+procedure TFrmMain.InitializeContentTask;
+begin
   FContent := GlobalContainer.Resolve<IFibbageContent>;
-  FContent.Initialize(FSelectedConfiguration, OnContentInitialized, OnContentError);
-  PostInitializeContent;
+  FContent.Initialize(FSelectedConfiguration);
 end;
 
 procedure TFrmMain.ClearPreviousData;
@@ -452,6 +491,20 @@ begin
     while FFinalVisItems.Count > 0 do
     begin
       var item := FFinalVisItems.ExtractAt(0);
+      FreeAndNil(item);
+    end;
+  finally
+    sbxFinalQuestions.EndUpdate;
+  end;
+end;
+
+procedure TFrmMain.ClearPreviousProjects;
+begin
+  sbxFinalQuestions.BeginUpdate;
+  try
+    while FProjectVisItems.Count > 0 do
+    begin
+      var item := FProjectVisItems.ExtractAt(0);
       FreeAndNil(item);
     end;
   finally
@@ -491,33 +544,93 @@ begin
   aInitializeProject.Execute;
 end;
 
-procedure TFrmMain.ProcessRemoveSelectedProjects(AOptions: TRemoveProjectOptions = []);
+procedure TFrmMain.OnRemoveProjectStart;
 begin
+  pLoading.Visible := True;
+  aiContentLoading.Enabled := True;
   sbxProjects.BeginUpdate;
   FLastQuestionProjects.BeginUpdate;
-  try
-    for var idx := FProjectVisItems.Count - 1 downto 0 do
-    begin
-      if not FProjectVisItems[idx].Selected then
-        Continue;
-      var item := FProjectVisItems.ExtractAt(idx);
-      if rpoFullWipe in AOptions then
-        TDirectory.Delete(item.OrgConfiguration.GetPath, True);
-      FLastQuestionProjects.Remove(item.OrgConfiguration);
-      FreeAndNil(item);
-    end;
-  finally
-    FLastQuestionProjects.EndUpdate;
-    sbxProjects.EndUpdate;
+end;
+
+procedure TFrmMain.OnRemoveProjectEnd;
+begin
+  for var idx := FProjectVisItems.Count - 1 downto 0 do
+  begin
+    if not FProjectVisItems[idx].Selected then
+      Continue;
+
+    var item := FProjectVisItems.ExtractAt(idx);
+    FreeAndNil(item);
+  end;
+  FLastQuestionProjects.EndUpdate;
+  sbxProjects.EndUpdate;
+
+  pLoading.Visible := False;
+  aiContentLoading.Enabled := False;
+end;
+
+procedure TFrmMain.OnRemoveProject;
+begin
+  for var idx := 0 to FProjectVisItems.Count - 1 do
+  begin
+    if not FProjectVisItems[idx].Selected then
+      Continue;
+
+    FLastQuestionProjects.Remove(FProjectVisItems[idx].OrgConfiguration);
+  end;
+end;
+
+procedure TFrmMain.OnRemoveProjectFullWipe;
+begin
+  for var idx := 0 to FProjectVisItems.Count - 1 do
+  begin
+    if not FProjectVisItems[idx].Selected then
+      Continue;
+    TDirectory.Delete(FProjectVisItems[idx].OrgConfiguration.GetPath, True);
+    FLastQuestionProjects.Remove(FProjectVisItems[idx].OrgConfiguration);
   end;
 end;
 
 procedure TFrmMain.aRemoveProjectsAllDataExecute(Sender: TObject);
 begin
-  ProcessRemoveSelectedProjects([rpoFullWipe]);
+  TAsyncAction.Create(OnRemoveProjectStart, OnRemoveProjectEnd, OnRemoveProjectFullWipe).Start
 end;
 
 procedure TFrmMain.aRemoveProjectsExecute(Sender: TObject);
+var
+  closeContent: Boolean;
+begin
+  closeContent := False;
+  for var item in FProjectVisItems do
+    if item.Selected then
+      if item.OrgConfiguration = FSelectedConfiguration then
+      begin
+        closeContent := True;
+        Break;
+      end;
+
+  if closeContent then
+  begin
+    TDialogService.MessageDialog('You are trying to remove currently open project. Continue?',
+      TMsgDlgType.mtWarning, [TMsgDlgBtn.mbYes, TMsgDlgBtn.mbNo], TMsgDlgBtn.mbNo, 0,
+      procedure(const AResult: TModalResult)
+      begin
+        if AResult = mrYes then
+        begin
+          RemoveProjects;
+
+          ClearPreviousData;
+          FContent := nil;
+          FSelectedConfiguration := nil;
+          bQuestions.Enabled := False;
+        end;
+      end);
+  end
+  else
+    RemoveProjects;
+end;
+
+procedure TFrmMain.RemoveProjects;
 begin
   TDialogService.MessageDialog('Do you also want to remove questions?',
     TMsgDlgType.mtConfirmation, [TMsgDlgBtn.mbYes, TMsgDlgBtn.mbNo], TMsgDlgBtn.mbNo, 0,
@@ -527,12 +640,13 @@ begin
         aRemoveProjectsAllData.Execute
       else
         aRemoveProjectsJustLastInfo.Execute;
+      aRemoveProjects.Enabled := False;
     end);
 end;
 
 procedure TFrmMain.aRemoveProjectsJustLastInfoExecute(Sender: TObject);
 begin
-  ProcessRemoveSelectedProjects;
+  TAsyncAction.Create(OnRemoveProjectStart, OnRemoveProjectEnd, OnRemoveProject).Start;
 end;
 
 procedure TFrmMain.aRemoveQuestionsExecute(Sender: TObject);
@@ -549,14 +663,47 @@ var
 begin
   if not GetProjectPath(path) then
     Exit;
+  FSelectedConfiguration.SetPath(path);
 
-  // update config
-  FContent.Save(path);
+  TAsyncAction.Create(OnPreSaveAs, OnPostSaveAs, SaveProc).Start;
+end;
+
+procedure TFrmMain.OnPreSaveAs;
+begin
+  pLoading.Visible := True;
+  aiContentLoading.Enabled := True;
+end;
+
+procedure TFrmMain.OnPostSaveAs;
+begin
+  AddLastChoosenProject;
+  InitializeLastQuestionProjects;
+  aRemoveProjects.Enabled := False;
+
+  pLoading.Visible := False;
+  aiContentLoading.Enabled := False;
+end;
+
+procedure TFrmMain.SaveProc;
+begin
+  FContent.Save;
 end;
 
 procedure TFrmMain.aSaveProjectExecute(Sender: TObject);
 begin
-  FContent.Save(FContent.GetPath);
+  TAsyncAction.Create(OnPreSave, OnPostSave, SaveProc).Start;
+end;
+
+procedure TFrmMain.OnPreSave;
+begin
+  pLoading.Visible := True;
+  aiContentLoading.Enabled := True;
+end;
+
+procedure TFrmMain.OnPostSave;
+begin
+  pLoading.Visible := False;
+  aiContentLoading.Enabled := False;
 end;
 
 procedure TFrmMain.bQuestionsClick(Sender: TObject);
@@ -621,25 +768,6 @@ begin
   finally
     dlg.Free;
   end;
-end;
-
-procedure TFrmMain.PostInitializeContent;
-begin
-  tcEditTabs.Visible := False;
-  aiContentLoading.Visible := True;
-  aiContentLoading.Enabled := True;
-  mvHomeOptions.HideMaster;
-end;
-
-procedure TFrmMain.OnContentError(const AError: string);
-begin
-  TThread.Synchronize(nil, procedure
-  begin
-    aiContentLoading.Visible := False;
-    aiContentLoading.Enabled := False;
-    tcEditTabs.Visible := True;
-    ShowMessage(Format('Could not parse data, "%s"', [AError]));
-  end);
 end;
 
 procedure TFrmMain.OnShortieQuestionItemDoubleClick(Sender: TObject);
@@ -926,27 +1054,6 @@ begin
   finally
     sbxFinalQuestions.EndUpdate;
   end;
-end;
-
-procedure TFrmMain.OnContentInitialized;
-begin
-  TThread.Synchronize(nil, procedure
-    begin
-      try
-        FillShortiesScrollBox;
-        FillFinalScrollBox;
-
-        AddLastChoosenProject;
-      finally
-        GoToAllQuestions;
-        aiContentLoading.Visible := False;
-        aiContentLoading.Enabled := False;
-        tcEditTabs.Visible := True;
-        FLastClickedItemToEdit := nil;
-        aRemoveQuestions.Enabled := False;
-        lProjectQuestions.Text := Format('Questions - %s', [FSelectedConfiguration.GetName]);
-      end;
-    end);
 end;
 
 procedure TFrmMain.pmProjectsPopup(Sender: TObject);
@@ -1288,6 +1395,7 @@ begin
   var items := FLastQuestionProjects.GetAll;
   sbxProjects.BeginUpdate;
   try
+    ClearPreviousProjects;
     for var item in items do
     begin
       var pItem := TProjectScrollItem.CreateItem(sbxProjects, item);

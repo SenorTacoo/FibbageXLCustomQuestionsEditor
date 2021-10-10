@@ -69,6 +69,8 @@ end;
 
 procedure TContentConfiguration.Save(const APath: string);
 begin
+  if GetPath <> APath then
+    SetPath(APath);
   ForceDirectories(APath);
   FRawCfg.SaveToFile(TPath.Combine(APath, '.fcqeinfo'));
 end;

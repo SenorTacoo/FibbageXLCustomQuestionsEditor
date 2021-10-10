@@ -16,7 +16,8 @@ uses
   uConsts in 'uConsts.pas',
   uLog in 'uLog.pas',
   uGetTextDlg in 'uGetTextDlg.pas' {GetTextDlg},
-  uContentConfiguration in 'uContentConfiguration.pas';
+  uContentConfiguration in 'uContentConfiguration.pas',
+  uAsyncAction in 'uAsyncAction.pas';
 
 {$R *.res}
 

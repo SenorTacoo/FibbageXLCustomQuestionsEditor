@@ -15,19 +15,16 @@ uses
 type
   TFibbageContent = class(TInterfacedObject, IFibbageContent)
   private
-    FProjectPath: string;
     FConfig: IContentConfiguration;
     FCategories: IFibbageCategories;
     FQuestionsLoader: IQuestionsLoader;
-    procedure SaveManifest(const APath: string);
+    procedure SaveManifest;
     procedure PrepareBackup(const APath: string);
     procedure RemoveBackup(const APath: string);
     procedure RestoreBackup(const APath: string);
-    procedure RestoreOldDir(const APath: string);
-    procedure SwitchOldDirToNew(const APath: string);
-    procedure PostSaveFailed(const APath: string);
-    procedure PostSaveSuccessful(const APath: string);
-    procedure PreSave(const APath: string);
+    procedure PostSaveFailed;
+    procedure PostSaveSuccessful;
+    procedure PreSave;
   public
     constructor Create(ACategories: IFibbageCategories; AQuestionsLoader: IQuestionsLoader);
 
@@ -35,9 +32,9 @@ type
     function Categories: IFibbageCategories;
     function GetPath: string;
 
-    procedure Initialize(AConfiguration: IContentConfiguration; AOnContentInitialized: TOnContentInitialized; AOnContentError: TOnContentError);
+    procedure Initialize(AConfiguration: IContentConfiguration);
 
-    procedure Save(const APath: string);
+    procedure Save;
 
     procedure AddShortieQuestion;
     procedure AddFinalQuestion;
@@ -87,29 +84,15 @@ end;
 
 function TFibbageContent.GetPath: string;
 begin
-  Result := FProjectPath;
+  Result := FConfig.GetPath;
 end;
 
-procedure TFibbageContent.Initialize(AConfiguration: IContentConfiguration;
-  AOnContentInitialized: TOnContentInitialized; AOnContentError: TOnContentError);
+procedure TFibbageContent.Initialize(AConfiguration: IContentConfiguration);
 begin
   FConfig := AConfiguration;
-  FProjectPath := AConfiguration.GetPath;
-  TTask.Create(
-    procedure
-    begin
-      try
-        FCategories.LoadCategories(FProjectPath);
-        FQuestionsLoader.LoadQuestions(FProjectPath);
 
-        if Assigned(AOnContentInitialized) then
-          AOnContentInitialized;
-      except
-        on E: Exception do
-          if Assigned(AOnContentError) then
-            AOnContentError(E.Message);
-      end;
-    end).Start;
+  FCategories.LoadCategories(GetPath);
+  FQuestionsLoader.LoadQuestions(GetPath);
 end;
 
 function TFibbageContent.Questions: IFibbageQuestions;
@@ -147,61 +130,44 @@ begin
     TDirectory.Move(APath + '_backup', APath);
 end;
 
-procedure TFibbageContent.SwitchOldDirToNew(const APath: string);
+procedure TFibbageContent.PreSave;
 begin
-  if DirectoryExists(APath) then
-    TDirectory.Delete(APath, True);
-  TDirectory.Move(APath + '_new', APath);
+  PrepareBackup(FConfig.GetPath);
 end;
 
-procedure TFibbageContent.RestoreOldDir(const APath: string);
+procedure TFibbageContent.PostSaveSuccessful;
 begin
-  if DirectoryExists(APath + '_new') then
-    TDirectory.Delete(APath + '_new', True);
+  RemoveBackup(FConfig.GetPath);
 end;
 
-procedure TFibbageContent.PreSave(const APath: string);
+procedure TFibbageContent.PostSaveFailed;
 begin
-  PrepareBackup(APath);
-//  FQuestionsLoader.Questions.
+  RestoreBackup(FConfig.GetPath);
 end;
 
-procedure TFibbageContent.PostSaveSuccessful(const APath: string);
+procedure TFibbageContent.Save;
 begin
-  RemoveBackup(APath);
-
-end;
-
-procedure TFibbageContent.PostSaveFailed(const APath: string);
-begin
-  RestoreBackup(APath);
-
-end;
-
-procedure TFibbageContent.Save(const APath: string);
-begin
-//  var newDirPath := APath + '_new';
-  PreSave(APath);
+  var path := FConfig.GetPath;
+  PreSave;
   try
-    FConfig.Save(APath);
-    FQuestionsLoader.Questions.Save(APath);
-    FCategories.Save(APath);
-    SaveManifest(APath);
+    FConfig.Save(path);
+    FQuestionsLoader.Questions.Save(path);
+    FCategories.Save(path);
+    SaveManifest;
 
-//    SwitchOldDirToNew(APath);
-    PostSaveSuccessful(APath);
+    PostSaveSuccessful;
   except
     on E: Exception do
     begin
       LogE('save exception %s/%s', [E.Message, E.ClassName]);
-      PostSaveFailed(APath);
+      PostSaveFailed;
     end;
   end;
 end;
 
-procedure TFibbageContent.SaveManifest(const APath: string);
+procedure TFibbageContent.SaveManifest;
 begin
-  var fs := TFileStream.Create(TPath.Combine(APath, 'manifest.jet'), fmCreate);
+  var fs := TFileStream.Create(TPath.Combine(FConfig.GetPath, 'manifest.jet'), fmCreate);
   var sw := TStreamWriter.Create(fs);
   try
     sw.WriteLine('{ "id":"Main", "name":"Main Content Pack", "types":["fibbageshortie","finalfibbage"] }');

@@ -57,9 +57,7 @@ type
     function GetHaveQuestionAudio: Boolean;
     function GetHaveAnswerAudio: Boolean;
     function GetHaveBumperAudio: Boolean;
-//    function GetQuestionAudioPath: string;
-//    function GetAnswerAudioPath: string;
-//    function GetBumperAudioPath: string;
+
     function GetQuestionAudioData: TBytes;
     function GetAnswerAudioData: TBytes;
     function GetBumperAudioData: TBytes;
@@ -73,16 +71,9 @@ type
     procedure SetAnswerAudioData(const AData: TBytes);
     procedure SetBumperAudioData(const AData: TBytes);
 
-//    procedure SetQuestionAudioPath(const AAudioPath: string);
-//    procedure SetAnswerAudioPath(const AAudioPath: string);
-//    procedure SetBumperAudioPath(const AAudioPath: string);
-
     function GetQuestionType: TQuestionType;
     procedure SetQuestionType(AQuestionType: TQuestionType);
     procedure Save(const APath: string);
-    procedure DeleteAnswerAudio;
-    procedure DeleteBumperAudio;
-    procedure DeleteQuestionAudio;
   end;
 
   TQuestionList = TList<IQuestion>;
@@ -123,9 +114,9 @@ type
     function Categories: IFibbageCategories;
     function GetPath: string;
 
-    procedure Initialize(AConfiguration: IContentConfiguration; AOnContentInitialized: TOnContentInitialized; AOnContentError: TOnContentError);
+    procedure Initialize(AConfiguration: IContentConfiguration);
 
-    procedure Save(const APath: string);
+    procedure Save;
     procedure AddShortieQuestion;
     procedure AddFinalQuestion;
     procedure RemoveShortieQuestion(AQuestion: IQuestion);
