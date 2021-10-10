@@ -575,6 +575,7 @@ begin
     FLastClickedConfigurationToEdit := pItem;
     FProjectVisItems.Add(pItem);
     pItem.Selected := True;
+    aRemoveProjects.Enabled := True;
   finally
     sbxProjects.EndUpdate;
   end;
@@ -1180,6 +1181,8 @@ begin
     qItem.OnMouseDown := OnShortieQuestionItemMouseDown;
     qItem.OnDblClick := OnShortieQuestionItemDoubleClick;
     FLastClickedItemToEdit := qItem;
+    qItem.Selected := True;
+    aRemoveQuestions.Enabled := True;
     FShortieVisItems.Add(qItem);
   finally
     sbxShortieQuestions.EndUpdate;
@@ -1202,6 +1205,8 @@ begin
     qItem.OnMouseDown := OnFinalQuestionItemMouseDown;
     qItem.OnDblClick := OnFinalQuestionItemDoubleClick;
     FLastClickedItemToEdit := qItem;
+    qItem.Selected := True;
+    aRemoveQuestions.Enabled := True;
     FFinalVisItems.Add(qItem);
   finally
     sbxFinalQuestions.EndUpdate;
@@ -1450,7 +1455,6 @@ begin
     FChangingTab := False;
   end;
   PrepareMultiViewButtons(atSingleQuestion);
-  aRemoveQuestions.Enabled := True;
 
   eSingleItemId.SetFocus;
 end;
