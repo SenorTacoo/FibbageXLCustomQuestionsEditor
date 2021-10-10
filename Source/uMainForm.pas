@@ -17,7 +17,7 @@ uses
   NewACDSAudio, System.Generics.Collections, uRecordForm, FMX.ListBox, 
   System.Messaging, System.DateUtils, uLog, uCategoriesLoader,
   FMX.Menus, System.StrUtils, uGetTextDlg, FMX.Objects, FMX.DialogService, uAsyncAction,
-  FMX.Effects;
+  FMX.Effects, Winapi.Windows, Winapi.ShellAPI, FMX.Platform.Win;
 
 type
   TQuestionScrollItem = class(TPanel)
@@ -215,6 +215,9 @@ type
     GlowEffect5: TGlowEffect;
     pQuestionsMultiview: TPanel;
     pProjectsMultiview: TPanel;
+    MenuItem1: TMenuItem;
+    miOpenLocal: TMenuItem;
+    aOpenInWindowsExplorer: TAction;
     procedure lDarkModeClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormResize(Sender: TObject);
@@ -250,6 +253,7 @@ type
     procedure aRemoveProjectsJustLastInfoExecute(Sender: TObject);
     procedure bGoBackFromEditProjectClick(Sender: TObject);
     procedure aSaveProjectAsExecute(Sender: TObject);
+    procedure aOpenInWindowsExplorerExecute(Sender: TObject);
   private
     FAppCreated: Boolean;
     FChangingTab: Boolean;
@@ -553,6 +557,13 @@ begin
   end;
 
   aInitializeProject.Execute;
+end;
+
+procedure TFrmMain.aOpenInWindowsExplorerExecute(Sender: TObject);
+begin
+  for var item in FProjectVisItems do
+    if item.Selected then
+      ShellExecute(WindowHandleToPlatform(Handle).Wnd, PChar('explore'), PChar(item.OrgConfiguration.GetPath), nil, nil, SW_SHOWNORMAL);
 end;
 
 procedure TFrmMain.OnRemoveProjectStart;
@@ -1076,6 +1087,8 @@ begin
   aRemoveProjects.Text := IfThen(selCnt > 1, 'Remove projects', 'Remove project');
   aRemoveProjects.Enabled := selCnt > 0;
   aEditProjectDetails.Enabled := Assigned(FLastClickedConfigurationToEdit) and (selCnt = 1);
+  aOpenInWindowsExplorer.Visible := selCnt > 0;
+  MenuItem1.Visible := aOpenInWindowsExplorer.Visible;
 end;
 
 procedure TFrmMain.pmQuestionsPopup(Sender: TObject);
