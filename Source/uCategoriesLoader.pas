@@ -203,25 +203,37 @@ begin
 end;
 
 function TFibbageCategories.GetFinalCategory(AQuestion: IQuestion): ICategory;
+var
+  bestCategory: ICategory;
 begin
   Result := nil;
   for var idx := 0 to FFinalCategories.Count - 1 do
   begin
     var category := FFinalCategories.Category(idx);
-    if AQuestion.GetId = category.GetId then
-      Exit(category);
+    if (AQuestion.GetId = category.GetId) then
+      if SameText(AQuestion.GetCategory, category.GetCategory) then
+        Exit(category)
+      else
+        bestCategory := category;
   end;
+  Result := bestCategory;
 end;
 
 function TFibbageCategories.GetShortieCategory(AQuestion: IQuestion): ICategory;
+var
+  bestCategory: ICategory;
 begin
-  Result := nil;
+  bestCategory := nil;
   for var idx := 0 to FShortieCategories.Count - 1 do
   begin
     var category := FShortieCategories.Category(idx);
-    if AQuestion.GetId = category.GetId then
-      Exit(category);
+    if (AQuestion.GetId = category.GetId) then
+      if SameText(AQuestion.GetCategory, category.GetCategory) then
+        Exit(category)
+      else
+        bestCategory := category;
   end;
+  Result := bestCategory;
 end;
 
 procedure TFibbageCategories.LoadCategories(const AContentDir: string);

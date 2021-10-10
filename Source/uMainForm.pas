@@ -244,6 +244,8 @@ type
     eSettingsGamePath: TEdit;
     bSettingsGamePath: TButton;
     aGetGamePath: TAction;
+    Layout3: TLayout;
+    bRefreshQuestionId: TButton;
     procedure lDarkModeClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormResize(Sender: TObject);
@@ -289,6 +291,7 @@ type
     procedure aCancelChangesSettingsExecute(Sender: TObject);
     procedure bSettingsClick(Sender: TObject);
     procedure aGetGamePathExecute(Sender: TObject);
+    procedure bRefreshQuestionIdClick(Sender: TObject);
   private
     FAppCreated: Boolean;
     FChangingTab: Boolean;
@@ -1003,6 +1006,11 @@ begin
   GoToAllQuestions;
 end;
 
+procedure TFrmMain.bRefreshQuestionIdClick(Sender: TObject);
+begin
+  eSingleItemId.Text := FContent.Categories.GetAvailableId.ToString;
+end;
+
 procedure TFrmMain.RemoveSelectedShortieQuestions;
 begin
   sbxShortieQuestions.BeginUpdate;
@@ -1686,7 +1694,7 @@ begin
   end;
   PrepareMultiViewButtons(atSingleQuestion);
 
-  eSingleItemId.SetFocus;
+  eSingleItemCategory.SetFocus;
 end;
 
 procedure TFrmMain.InitializeLastQuestionProjects;
