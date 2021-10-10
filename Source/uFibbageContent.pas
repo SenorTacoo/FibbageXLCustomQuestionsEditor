@@ -92,6 +92,7 @@ begin
   var newQuestion := TQuestionItem.Create;
   newQuestion.SetDefaults;
   newQuestion.CloneFrom(AQuestion);
+  newQuestion.SetQuestionType(qtFinal);
 
   var newCategory := FCategories.CreateNewFinalCategory;
   newCategory.CloneFrom(AQuestion.GetCategoryObj);
@@ -110,6 +111,7 @@ begin
   var newQuestion := TQuestionItem.Create;
   newQuestion.SetDefaults;
   newQuestion.CloneFrom(AQuestion);
+  newQuestion.SetQuestionType(qtShortie);
 
   var newCategory := FCategories.CreateNewShortieCategory;
   newCategory.CloneFrom(AQuestion.GetCategoryObj);
@@ -249,6 +251,7 @@ begin
   var category := FCategories.CreateNewFinalCategory;
   category.CloneFrom(AQuestion.GetCategoryObj);
 
+  AQuestion.SetQuestionType(qtFinal);
   FQuestionsLoader.Questions.FinalQuestions.Add(AQuestion);
   FQuestionsLoader.Questions.ShortieQuestions.Remove(AQuestion);
 end;
@@ -259,6 +262,7 @@ begin
   var category := FCategories.CreateNewShortieCategory;
   category.CloneFrom(AQuestion.GetCategoryObj);
 
+  AQuestion.SetQuestionType(qtShortie);
   FQuestionsLoader.Questions.ShortieQuestions.Add(AQuestion);
   FQuestionsLoader.Questions.FinalQuestions.Remove(AQuestion);
 end;
