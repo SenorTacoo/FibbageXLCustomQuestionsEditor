@@ -3,6 +3,7 @@
 interface
 
 uses
+  System.Classes,
   System.Generics.Collections;
 
 type
@@ -93,9 +94,17 @@ type
     ['{C29008F3-5F9B-4053-8947-792D2430F7AE}']
     function Questions: IFibbageQuestions;
     function Categories: IFibbageCategories;
+    function GetPath: string;
 
     procedure Initialize(const AContentPath: string; AOnContentInitialized: TOnContentInitialized; AOnContentError: TOnContentError);
     procedure Save(const APath: string);
+  end;
+
+  ILastQuestionProjects = interface
+    ['{3AC14137-BA00-4639-9CA3-07DA510AC191}']
+    procedure Initialize;
+    procedure Add(AContent: IFibbageContent);
+    function GetAll: TStringList;
   end;
 
 implementation

@@ -8,18 +8,8 @@ uses
   uQuestionsLoader,
   uCategoriesLoader,
   uPathChecker,
+  uLastQuestionsLoader,
   uFibbageContent;
-
-//type
-//  TAppContainer = class
-//  private class var
-//    FInstance: TContainer;
-//  private
-//    class constructor Create;
-//    class destructor Destroy
-//  public
-//
-//  end;
 
 var
   GlobalContainer: TContainer;
@@ -35,6 +25,7 @@ initialization
   GlobalContainer.RegisterType<ICategories, TCategories>;
   GlobalContainer.RegisterType<IFibbageCategories, TFibbageCategories>;
   GlobalContainer.RegisterType<IFibbageContent, TFibbageContent>;
+  GlobalContainer.RegisterType<ILastQuestionProjects, TLastQuestionsLoader>;
   GlobalContainer.Build;
 
 finalization

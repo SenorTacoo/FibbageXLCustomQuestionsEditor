@@ -154,10 +154,9 @@ object RecordForm: TRecordForm
         Value = 100.000000000000000000
       end>
     object bSaveRecordedAudio: TButton
-      Anchors = []
+      Align = Client
       Enabled = False
-      Position.X = 273.750000000000000000
-      Size.Width = 192.000000000000000000
+      Size.Width = 246.500000000000000000
       Size.Height = 50.000000000000000000
       Size.PlatformDefault = False
       StyleLookup = 'savetoolbuttonmultiview'
@@ -166,9 +165,8 @@ object RecordForm: TRecordForm
       OnClick = bSaveRecordedAudioClick
     end
     object bGoBack: TButton
-      Anchors = []
-      Position.X = 58.750000000000000000
-      Size.Width = 129.000000000000000000
+      Align = Client
+      Size.Width = 246.500000000000000000
       Size.Height = 50.000000000000000000
       Size.PlatformDefault = False
       StyleLookup = 'stoptoolbuttonmultiview'

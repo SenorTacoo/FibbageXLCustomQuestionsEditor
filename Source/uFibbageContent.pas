@@ -11,6 +11,7 @@ uses
 type
   TFibbageContent = class(TInterfacedObject, IFibbageContent)
   private
+    FContentPath: string;
     FCategories: IFibbageCategories;
     FQuestionsLoader: IQuestionsLoader;
   public
@@ -18,6 +19,7 @@ type
 
     function Questions: IFibbageQuestions;
     function Categories: IFibbageCategories;
+    function GetPath: string;
 
     procedure Initialize(const AContentPath: string; AOnContentInitialized: TOnContentInitialized; AOnContentError: TOnContentError);
     procedure Save(const APath: string);
@@ -40,15 +42,21 @@ begin
   FQuestionsLoader := AQuestionsLoader;
 end;
 
+function TFibbageContent.GetPath: string;
+begin
+  Result := FContentPath;
+end;
+
 procedure TFibbageContent.Initialize(const AContentPath: string;
   AOnContentInitialized: TOnContentInitialized; AOnContentError: TOnContentError);
 begin
+  FContentPath := AContentPath;
   TTask.Create(
   procedure
   begin
     try
-      FCategories.LoadCategories(AContentPath);
-      FQuestionsLoader.LoadQuestions(AContentPath);
+      FCategories.LoadCategories(FContentPath);
+      FQuestionsLoader.LoadQuestions(FContentPath);
       if Assigned(AOnContentInitialized) then
         AOnContentInitialized;
     except

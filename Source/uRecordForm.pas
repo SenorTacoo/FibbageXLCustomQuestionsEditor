@@ -266,12 +266,17 @@ begin
   StyleBook := Application.MainForm.StyleBook;
 
   var font := TFont.Create;
-  font.Family := 'Segoe UI';
-  font.Size := 18;
-  font.Style := [];
+  try
+    font.Family := 'Segoe UI';
+    font.Size := 18;
+    font.Style := [];
 
-  cbAudioOutput.Canvas.Font.Assign(font);
-  cbAudioInput.Canvas.Font.Assign(font);
+    cbAudioOutput.Canvas.Font.Assign(font);
+    cbAudioInput.Canvas.Font.Assign(font);
+  finally
+    font.Free;
+  end;
+
   DSAudioOut1.OnStart := OnOutputAudioStart;
   voMic.OnStart := OnInputAudioStart;
   FillDevices;

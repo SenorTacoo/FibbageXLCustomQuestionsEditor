@@ -11,7 +11,9 @@ uses
   uCategoriesLoader in 'uCategoriesLoader.pas',
   uFibbageContent in 'uFibbageContent.pas',
   uSpringContainer in 'uSpringContainer.pas',
-  uRecordForm in 'uRecordForm.pas' {RecordForm};
+  uRecordForm in 'uRecordForm.pas' {RecordForm},
+  uLastQuestionsLoader in 'uLastQuestionsLoader.pas',
+  uSingleQuestionItem in 'uSingleQuestionItem.pas' {QuestionItemForm},
 
 {$R *.res}
 

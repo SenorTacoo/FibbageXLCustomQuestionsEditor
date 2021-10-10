@@ -14,10 +14,20 @@ uses
   Data.Bind.ObjectScope, FMX.Platform, uQuestionsLoader, uSpringContainer, System.Math,
   FMX.Memo.Types, FMX.ScrollBox, FMX.Memo, FMX.Media,
   ACS_Classes, ACS_DXAudio, ACS_Vorbis, ACS_Converters, ACS_Wave,
-  NewACDSAudio, System.Generics.Collections, uRecordForm;
+  NewACDSAudio, System.Generics.Collections, uRecordForm, FMX.ListBox, uSingleQuestionItem,
+  FMX.Objects, System.Messaging, System.DateUtils, uLog;
 
 type
-  TFibbageSoundType = (fstNone, fstQuestion, fstAnswer, fstBumper); // TODO
+  TQuestionScrollItem = class(TPanel)
+  private
+    FDetails: TLabel;
+    FQuestion: TLabel;
+  protected
+    procedure Click; override;
+    procedure Resize; override;
+  public
+    constructor CreateItem(AOwner: TComponent; AQuestionId: Integer; const AQuestionCategory, AQuestion: string);
+  end;
 
   TFrmMain = class(TForm)
     MultiView1: TMultiView;
@@ -37,10 +47,6 @@ type
     tcEditTabs: TTabControl;
     tiShortieQuestions: TTabItem;
     tiEditSingleItem: TTabItem;
-    lvEditAllItems: TListView;
-    pbsAllItems: TPrototypeBindSource;
-    BindingsList1: TBindingsList;
-    LinkFillControlToField1: TLinkFillControlToField;
     aiContentLoading: TAniIndicator;
     lyDarkMode: TLayout;
     sDarkMode: TSwitch;
@@ -70,7 +76,6 @@ type
     lySingleItemAudio: TLayout;
     pSingleItemAudio: TPanel;
     lSingleItemAudio: TLabel;
-    MediaPlayer1: TMediaPlayer;
     tiFinalQuestions: TTabItem;
     lyContent: TLayout;
     aGoToFinalQuestions: TChangeTabAction;
@@ -78,7 +83,6 @@ type
     tiQuestions: TTabItem;
     tcQuestions: TTabControl;
     aGoToAllQuestions: TChangeTabAction;
-    lvFinalQuestions: TListView;
     GridPanelLayout1: TGridPanelLayout;
     bSingleItemQuestionAudio: TButton;
     bSingleItemCorrectAudio: TButton;
@@ -95,6 +99,23 @@ type
     eSingleItemCategory: TEdit;
     sbLightStyle: TStyleBook;
     sbDarkStyle: TStyleBook;
+    tiQuestionProjects: TTabItem;
+    lvQuestionProjects: TListView;
+    bHomeButton: TButton;
+    aGoToHome: TChangeTabAction;
+    bQuestions: TButton;
+    sbxShortieQuestions: TVertScrollBox;
+    pBackground: TPanel;
+    sbxFinalQuestions: TVertScrollBox;
+    tbQuestionProjects: TToolBar;
+    lOpenRecentProjects: TLabel;
+    ToolBar2: TToolBar;
+    Label1: TLabel;
+    ToolBar3: TToolBar;
+    Label2: TLabel;
+    GridPanelLayout2: TGridPanelLayout;
+    bShortieQuestions: TButton;
+    bFinalQuestions: TButton;
     procedure aWindowMinimizeExecute(Sender: TObject);
     procedure aWindowMaximizeExecute(Sender: TObject);
     procedure aWindowNormalExecute(Sender: TObject);
@@ -105,7 +126,6 @@ type
     procedure ToolBar1MouseMove(Sender: TObject; Shift: TShiftState; X,
       Y: Single);
     procedure FormCreate(Sender: TObject);
-    procedure lyGameDirectoryPathClick(Sender: TObject);
     procedure FormResize(Sender: TObject);
     procedure bImportQuestionsClick(Sender: TObject);
     procedure bExportQuestionsClick(Sender: TObject);
@@ -124,24 +144,32 @@ type
     procedure lvFinalQuestionsDblClick(Sender: TObject);
     procedure lvFinalQuestionsKeyDown(Sender: TObject; var Key: Word;
       var KeyChar: Char; Shift: TShiftState);
-    procedure voMicSyncDone(Sender: TComponent);
     procedure bGoBackFromDetailsClick(Sender: TObject);
+    procedure lvQuestionProjectsDblClick(Sender: TObject);
+    procedure lvEditAllItemsClick(Sender: TObject);
+    procedure bHomeButtonClick(Sender: TObject);
+    procedure bQuestionsClick(Sender: TObject);
+    procedure bShortieQuestionsClick(Sender: TObject);
+    procedure bFinalQuestionsClick(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
   private
     FMouseDownPt: TPoint;
     FAppCreated: Boolean;
-    FMic: TVorbisOut;
     FContent: IFibbageContent;
     FLastActiveTab: TTabItem;
     FSelectedQuestion: IQuestion;
     FSelectedCategory: ICategory;
-    FCurrentRecordingType: TFibbageSoundType;
+    FLastQuestionProjects: ILastQuestionProjects;
+
     procedure OnContentInitialized;
     procedure OnContentError(const AError: string);
-    procedure PopulateListView(AQuestions: TList<IQuestion>;
-      AListView: TListView);
-    procedure StartRecording(ASoundType: TFibbageSoundType);
-    procedure StopRecording;
     procedure GoToQuestionDetails;
+    procedure AddLastChoosenProject;
+    procedure InitializeLastQuestionProjects;
+    procedure InitializeContent(const APath: string);
+    procedure PopulateScrollBox(AQuestions: TList<IQuestion>; AScrollBox: TCustomScrollBox);
+    procedure GoToFinalQuestions;
+    procedure GoToShortieQuestions;
   public
     { Public declarations }
   end;
@@ -152,6 +180,11 @@ var
 implementation
 
 {$R *.fmx}
+
+procedure TFrmMain.AddLastChoosenProject;
+begin
+  FLastQuestionProjects.Add(FContent);
+end;
 
 procedure TFrmMain.aGoToFinalQuestionsUpdate(Sender: TObject);
 begin
@@ -184,7 +217,6 @@ end;
 
 procedure TFrmMain.bImportQuestionsClick(Sender: TObject);
 var
-  dlg: IFMXDialogServiceAsync;
   rootDir: string;
   gameDir: string;
 begin
@@ -216,9 +248,21 @@ begin
     end;
   end;
 
-  TAppConfig.GetInstance.LastEditPath := gameDir;
+  InitializeContent(gameDir);
+  aGoToAllQuestions.Execute;
+  GoToShortieQuestions;
+end;
+
+procedure TFrmMain.bQuestionsClick(Sender: TObject);
+begin
+  aGoToAllQuestions.Execute;
+end;
+
+procedure TFrmMain.InitializeContent(const APath: string);
+begin
+  TAppConfig.GetInstance.LastEditPath := APath;
   FContent := GlobalContainer.Resolve<IFibbageContent>;
-  FContent.Initialize(gameDir, OnContentInitialized, OnContentError);
+  FContent.Initialize(APath, OnContentInitialized, OnContentError);
   tcQuestions.Visible := False;
   aiContentLoading.Visible := True;
   aiContentLoading.Enabled := True;
@@ -235,30 +279,24 @@ begin
   end);
 end;
 
-procedure TFrmMain.PopulateListView(AQuestions: TList<IQuestion>; AListView: TListView);
+procedure TFrmMain.PopulateScrollBox(AQuestions: TList<IQuestion>;
+  AScrollBox: TCustomScrollBox);
 begin
-  AListView.BeginUpdate;
+  AScrollBox.BeginUpdate;
   try
-    AListView.Items.Clear;
     for var item in AQuestions do
     begin
-      var lvItem := AListView.Items.Add;
-      lvItem.Data['Question'] := item.GetQuestion.Trim;
-      lvItem.Data['Suggestions'] := item.GetSuggestions.Trim;
-      lvItem.Data['Answer'] := item.GetAnswer.Trim;
-      lvItem.Data['ItemIdx'] := AQuestions.IndexOf(item);
-      if AListView = lvEditAllItems then
-        lvItem.Data['CategoryDetails'] := Format('Id: %d, Category: %s', [
-          FContent.Categories.GetShortieCategory(item).GetId,
-          FContent.Categories.GetShortieCategory(item).GetCategory.Trim])
+      var category: ICategory;
+      if AScrollBox = sbxShortieQuestions then
+        category := FContent.Categories.GetShortieCategory(item)
       else
-        lvItem.Data['CategoryDetails'] := Format('Id: %d, Category: %s', [
-          FContent.Categories.GetFinalCategory(item).GetId,
-          FContent.Categories.GetFinalCategory(item).GetCategory.Trim])
-
+        category := FContent.Categories.GetFinalCategory(item);
+      var qItem := TQuestionScrollItem.CreateItem(AScrollBox, category.GetId, category.GetCategory.Trim, item.GetQuestion.Trim);
+      qItem.Parent := AScrollBox;
+      qItem.Align := TAlignLayout.Top;
     end;
   finally
-    AListView.EndUpdate;
+    AScrollBox.EndUpdate;
   end;
 end;
 
@@ -267,8 +305,10 @@ begin
   TThread.Synchronize(nil, procedure
     begin
       try
-        PopulateListView(FContent.Questions.ShortieQuestions, lvEditAllItems);
-        PopulateListView(FContent.Questions.FinalQuestions, lvFinalQuestions);
+        PopulateScrollBox(FContent.Questions.ShortieQuestions, sbxShortieQuestions);
+        PopulateScrollBox(FContent.Questions.FinalQuestions, sbxFinalQuestions);
+
+        AddLastChoosenProject;
       finally
         aiContentLoading.Visible := False;
         aiContentLoading.Enabled := False;
@@ -298,6 +338,22 @@ begin
   FContent.Save(gameDir);
 end;
 
+procedure TFrmMain.bFinalQuestionsClick(Sender: TObject);
+begin
+  GoToFinalQuestions;
+end;
+
+procedure TFrmMain.GoToFinalQuestions;
+begin
+  bShortieQuestions.StaysPressed := False;
+  bShortieQuestions.IsPressed := False;
+  bFinalQuestions.StaysPressed := True;
+  bFinalQuestions.IsPressed := True;
+  bFinalQuestions.Enabled := False;
+  bShortieQuestions.Enabled := True;
+  aGoToFinalQuestions.Execute;
+end;
+
 procedure TFrmMain.bGoBackFromDetailsClick(Sender: TObject);
 begin
   bImportQuestions.Visible := True;
@@ -314,37 +370,58 @@ begin
   FSelectedCategory.SetId(FSelectedQuestion.GetId);
   FSelectedCategory.SetCategory(eSingleItemCategory.Text.Trim);
 
-  var selected: TListViewItem;
-  if tcQuestions.ActiveTab = tiShortieQuestions then
-  begin
-    if not (lvEditAllItems.Selected is TListViewItem) then
-      Exit;
-    selected := (lvEditAllItems.Selected as TListViewItem);
-    selected.Data['Question'] := FSelectedQuestion.GetQuestion;
-    selected.Data['Suggestions'] := FSelectedQuestion.GetSuggestions;
-    selected.Data['Answer'] := FSelectedQuestion.GetAnswer;
-    selected.Data['ItemIdx'] := FContent.Questions.ShortieQuestions.IndexOf(FSelectedQuestion);
-    selected.Data['CategoryDetails'] := Format('Id: %d, Category: %s', [
-      FContent.Categories.GetShortieCategory(FSelectedQuestion).GetId,
-      FContent.Categories.GetShortieCategory(FSelectedQuestion).GetCategory]);
-  end
-  else if tcQuestions.ActiveTab = tiFinalQuestions then
-  begin
-    if not (lvFinalQuestions.Selected is TListViewItem) then
-      Exit;
-    selected := (lvFinalQuestions.Selected as TListViewItem);
-    selected.Data['Question'] := FSelectedQuestion.GetQuestion;
-    selected.Data['Suggestions'] := FSelectedQuestion.GetSuggestions;
-    selected.Data['Answer'] := FSelectedQuestion.GetAnswer;
-    selected.Data['ItemIdx'] := FContent.Questions.FinalQuestions.IndexOf(FSelectedQuestion);
-    selected.Data['CategoryDetails'] := Format('Id: %d, Category: %s', [
-      FContent.Categories.GetFinalCategory(FSelectedQuestion).GetId,
-      FContent.Categories.GetFinalCategory(FSelectedQuestion).GetCategory]);
-  end
-  else
-    Exit;
+//  var selected: TListViewItem;
+//  if tcQuestions.ActiveTab = tiShortieQuestions then
+//  begin
+//    if not (lvEditAllItems.Selected is TListViewItem) then
+//      Exit;
+//    selected := (lvEditAllItems.Selected as TListViewItem);
+//    selected.Data['Question'] := FSelectedQuestion.GetQuestion;
+//    selected.Data['Suggestions'] := FSelectedQuestion.GetSuggestions;
+//    selected.Data['Answer'] := FSelectedQuestion.GetAnswer;
+//    selected.Data['ItemIdx'] := FContent.Questions.ShortieQuestions.IndexOf(FSelectedQuestion);
+//    selected.Data['CategoryDetails'] := Format('Id: %d, Category: %s', [
+//      FContent.Categories.GetShortieCategory(FSelectedQuestion).GetId,
+//      FContent.Categories.GetShortieCategory(FSelectedQuestion).GetCategory]);
+//  end
+//  else if tcQuestions.ActiveTab = tiFinalQuestions then
+//  begin
+//    if not (lvFinalQuestions.Selected is TListViewItem) then
+//      Exit;
+//    selected := (lvFinalQuestions.Selected as TListViewItem);
+//    selected.Data['Question'] := FSelectedQuestion.GetQuestion;
+//    selected.Data['Suggestions'] := FSelectedQuestion.GetSuggestions;
+//    selected.Data['Answer'] := FSelectedQuestion.GetAnswer;
+//    selected.Data['ItemIdx'] := FContent.Questions.FinalQuestions.IndexOf(FSelectedQuestion);
+//    selected.Data['CategoryDetails'] := Format('Id: %d, Category: %s', [
+//      FContent.Categories.GetFinalCategory(FSelectedQuestion).GetId,
+//      FContent.Categories.GetFinalCategory(FSelectedQuestion).GetCategory]);
+//  end
+//  else
+//    Exit;
 
   aGoToAllQuestions.Execute;
+end;
+
+procedure TFrmMain.bHomeButtonClick(Sender: TObject);
+begin
+  aGoToHome.Execute;
+end;
+
+procedure TFrmMain.bShortieQuestionsClick(Sender: TObject);
+begin
+  GoToShortieQuestions;
+end;
+
+procedure TFrmMain.GoToShortieQuestions;
+begin
+  bFinalQuestions.StaysPressed := False;
+  bFinalQuestions.IsPressed := False;
+  bShortieQuestions.StaysPressed := True;
+  bShortieQuestions.IsPressed := True;
+  bShortieQuestions.Enabled := False;
+  bFinalQuestions.Enabled := True;
+  aGoToShortieQuestions.Execute;
 end;
 
 procedure TFrmMain.bSingleItemBumperAudioClick(Sender: TObject);
@@ -384,10 +461,22 @@ begin
   tcQuestions.Visible := False;
   sDarkMode.IsChecked := TAppConfig.GetInstance.DarkModeEnabled;
 
-  tcEditTabs.ActiveTab := tiQuestions;
+  tcEditTabs.ActiveTab := tiQuestionProjects;
   tcQuestions.ActiveTab := tiShortieQuestions;
-  MultiView1.ShowMaster;
+
+  FLastQuestionProjects := GlobalContainer.Resolve<ILastQuestionProjects>;
+  FLastQuestionProjects.Initialize;
+  InitializeLastQuestionProjects;
+
+  if lvQuestionProjects.Items.Count = 0 then
+    MultiView1.ShowMaster;
+
   FAppCreated := True;
+end;
+
+procedure TFrmMain.FormDestroy(Sender: TObject);
+begin
+  Log('Destroyed');
 end;
 
 procedure TFrmMain.FormResize(Sender: TObject);
@@ -414,17 +503,42 @@ begin
   aGoToQuestionDetails.Execute;
 end;
 
+procedure TFrmMain.InitializeLastQuestionProjects;
+begin
+  var paths := FLastQuestionProjects.GetAll;
+  try
+    for var idx := 0 to paths.Count - 1 do
+    begin
+      var item := lvQuestionProjects.Items.Add;
+      item.Data['ProjectPath'] := paths[idx];
+      item.Data['ProjectName'] := 'Polskie pytania';
+      item.Data['QuestionsCount'] := 'Shorties: 100' + sLineBreak + 'Final: 100';
+
+    end;
+  finally
+    paths.Free;
+  end;
+end;
+
 procedure TFrmMain.lDarkModeClick(Sender: TObject);
 begin
   sDarkMode.IsChecked := not sDarkMode.IsChecked;
 end;
 
+procedure TFrmMain.lvEditAllItemsClick(Sender: TObject);
+begin
+//  lvEditAllItems.Items[0].HasClickOnSelectItems  // PRZEJSC Z LISTVIEW NA SCROLLA Z ITEMAMI
+//  var selectedItem := lvEditAllItems.Items[lvEditAllItems.ItemIndex];
+//  selectedItem.Checked := True;
+end;
+
 procedure TFrmMain.lvEditAllItemsDblClick(Sender: TObject);
 begin
-  var selectedItem := lvEditAllItems.Items[lvEditAllItems.ItemIndex];
-  FSelectedQuestion := FContent.Questions.ShortieQuestions[selectedItem.Data['ItemIdx'].AsType<Integer>];
-  FSelectedCategory := FContent.Categories.GetShortieCategory(FSelectedQuestion);
-  GoToQuestionDetails;
+//  var selectedItem := lvEditAllItems.Items[lvEditAllItems.ItemIndex];
+//  selectedItem.Checked := True;
+//  FSelectedQuestion := FContent.Questions.ShortieQuestions[selectedItem.Data['ItemIdx'].AsType<Integer>];
+//  FSelectedCategory := FContent.Categories.GetShortieCategory(FSelectedQuestion);
+//  GoToQuestionDetails;
 end;
 
 procedure TFrmMain.lvEditAllItemsKeyDown(Sender: TObject; var Key: Word;
@@ -432,10 +546,10 @@ procedure TFrmMain.lvEditAllItemsKeyDown(Sender: TObject; var Key: Word;
 begin
   if (Key = vkReturn) or (Key = vkRight) then
   begin
-    var selectedItem := lvEditAllItems.Items[lvEditAllItems.ItemIndex];
-    FSelectedQuestion := FContent.Questions.ShortieQuestions[selectedItem.Data['ItemIdx'].AsType<Integer>];
-    FSelectedCategory := FContent.Categories.GetShortieCategory(FSelectedQuestion);
-    GoToQUestionDetails;
+//    var selectedItem := lvEditAllItems.Items[lvEditAllItems.ItemIndex];
+//    FSelectedQuestion := FContent.Questions.ShortieQuestions[selectedItem.Data['ItemIdx'].AsType<Integer>];
+//    FSelectedCategory := FContent.Categories.GetShortieCategory(FSelectedQuestion);
+//    GoToQUestionDetails;
   end;
 end;
 
@@ -443,7 +557,7 @@ procedure TFrmMain.lvEditAllItemsUpdateObjects(const Sender: TObject;
   const AItem: TListViewItem);
 begin
   var baseLV := Sender as TListView;
-  var wholeHeight := 0;
+
   var qDrawable := AItem.View.FindDrawable('Question') as TListItemText;
   var aDrawable := AItem.View.FindDrawable('Answer') as TListItemText;
   var sDrawable := AItem.View.FindDrawable('Suggestions') as TListItemText;
@@ -479,57 +593,38 @@ end;
 
 procedure TFrmMain.lvFinalQuestionsDblClick(Sender: TObject);
 begin
-  var selectedItem := lvFinalQuestions.Items[lvFinalQuestions.ItemIndex];
-  FSelectedQuestion := FContent.Questions.FinalQuestions[selectedItem.Data['ItemIdx'].AsType<Integer>];
-  FSelectedCategory := FContent.Categories.GetFinalCategory(FSelectedQuestion);
-  GoToQuestionDetails;
+//  var selectedItem := lvFinalQuestions.Items[lvFinalQuestions.ItemIndex];
+//  FSelectedQuestion := FContent.Questions.FinalQuestions[selectedItem.Data['ItemIdx'].AsType<Integer>];
+//  FSelectedCategory := FContent.Categories.GetFinalCategory(FSelectedQuestion);
+//  GoToQuestionDetails;
 end;
 
 procedure TFrmMain.lvFinalQuestionsKeyDown(Sender: TObject; var Key: Word;
   var KeyChar: Char; Shift: TShiftState);
 begin
-  if (Key = vkReturn) or (Key = vkRight) then
-  begin
-    var selectedItem := lvFinalQuestions.Items[lvFinalQuestions.ItemIndex];
-    FSelectedQuestion := FContent.Questions.FinalQuestions[selectedItem.Data['ItemIdx'].AsType<Integer>];
-    FSelectedCategory := FContent.Categories.GetFinalCategory(FSelectedQuestion);
-    GoToQuestionDetails;
-  end;
+//  if (Key = vkReturn) or (Key = vkRight) then
+//  begin
+//    var selectedItem := lvFinalQuestions.Items[lvFinalQuestions.ItemIndex];
+//    FSelectedQuestion := FContent.Questions.FinalQuestions[selectedItem.Data['ItemIdx'].AsType<Integer>];
+//    FSelectedCategory := FContent.Categories.GetFinalCategory(FSelectedQuestion);
+//    GoToQuestionDetails;
+//  end;
 end;
 
-procedure TFrmMain.lyGameDirectoryPathClick(Sender: TObject);
-var
-  rootDir: string;
-  gameDir: string;
+procedure TFrmMain.lvQuestionProjectsDblClick(Sender: TObject);
 begin
-//  if (not TAppConfig.GetInstance.GameDirPath.IsEmpty) and FContainer.Resolve<IFibbagePathChecker>.IsValid(TAppConfig.GetInstance.GameDirPath) then
-//    rootDir := TAppConfig.GetInstance.GameDirPath
-//  else
-//  begin
-//    rootDir :=
-//      IncludeTrailingPathDelimiter(GetEnvironmentVariable('programfiles')) +
-//      IncludeTrailingPathDelimiter('Steam') +
-//      IncludeTrailingPathDelimiter('steamapps') +
-//      IncludeTrailingPathDelimiter('common') +
-//      IncludeTrailingPathDelimiter('Fibbage XL');
-//    if not FContainer.Resolve<IFibbagePathChecker>.IsValid(rootDir) then
-//      rootDir := GetCurrentDir;
-//  end;
-//
-//  while True do
-//  begin
-//    if (not SelectDirectory('Select game directory path', rootDir, gameDir)) then
-//      Exit
-//    else if FContainer.Resolve<IFibbagePathChecker>.IsValid(gameDir) then
-//      Break
-//    else
-//    begin
-//      ShowMessage('Fibbage files not found');
-//      rootDir := gameDir;
-//    end;
-//  end;
-//
-//  eGameDirectoryPath.Text := gameDir;
+  var selectedItem := lvQuestionProjects.Items[lvQuestionProjects.ItemIndex];
+  var contentDir := selectedItem.Data['ProjectPath'].AsString;
+
+  var pathChecker := GlobalContainer.Resolve<IFibbagePathChecker>;
+  if not pathChecker.IsValid(contentDir) then
+    ShowMessage('Game content is not available at this path')
+  else
+  begin
+    InitializeContent(contentDir);
+    aGoToAllQuestions.Execute;
+    GoToShortieQuestions;
+  end;
 end;
 
 procedure TFrmMain.sDarkModeSwitch(Sender: TObject);
@@ -541,17 +636,6 @@ begin
 
   if FAppCreated then
     TAppConfig.GetInstance.DarkModeEnabled := sDarkMode.IsChecked;
-end;
-
-procedure TFrmMain.StartRecording(ASoundType: TFibbageSoundType);
-begin
-  FCurrentRecordingType := ASoundType;
-//  voMic.Run;
-end;
-
-procedure TFrmMain.StopRecording;
-begin
-//  voMic.Stop;
 end;
 
 procedure TFrmMain.ToolBar1MouseDown(Sender: TObject; Button: TMouseButton;
@@ -578,23 +662,58 @@ begin
   end;
 end;
 
-procedure TFrmMain.voMicSyncDone(Sender: TComponent);
+{ TQuestionScrollItem }
+
+procedure TQuestionScrollItem.Click;
 begin
-//  TThread.Synchronize(nil,
-//  procedure
-//  begin
-//    case FCurrentRecordingType of
-//      fstQuestion:
-//        bSingleItemRecordQuestion.StyleLookup := 'mictoolbutton';
-//      fstAnswer:
-//        bSingleItemRecordAnswer.StyleLookup := 'mictoolbutton';
-//      fstBumper:
-//        bSingleItemRecordBumper.StyleLookup := 'mictoolbutton';
-//      else
-//        Assert(False, 'unknown recording type');
-//    end;
-//    FCurrentRecordingType := fstNone;
-//  end);
+  StyleLookup := 'rScrollItemSelectedStyle';
+  inherited;
+end;
+
+constructor TQuestionScrollItem.CreateItem(AOwner: TComponent;
+  AQuestionId: Integer; const AQuestionCategory, AQuestion: string);
+begin
+  inherited Create(AOwner);
+
+  StyleLookup := 'rScrollItemStyle';
+  HitTest := True;
+
+  FDetails := TLabel.Create(AOwner);
+  FDetails.Parent := Self;
+  FDetails.Align := TAlignLayout.MostTop;
+  FDetails.StyledSettings := [TStyledSetting.Family, TStyledSetting.Style, TStyledSetting.FontColor];
+  FDetails.Text := Format('Id: %d, Category: %s', [AQuestionId, AQuestionCategory]);
+  FDetails.TextSettings.Font.Size := 13;
+  FDetails.Margins.Left := 10;
+  FDetails.Margins.Right := 10;
+  FDetails.Margins.Top := 10;
+  FDetails.StyleLookup := 'listboxitemdetaillabel';
+
+  FQuestion := TLabel.Create(AOwner);
+  FQuestion.Parent := Self;
+  FQuestion.Align := TAlignLayout.Top;
+  FQuestion.StyledSettings := [TStyledSetting.Family, TStyledSetting.Style, TStyledSetting.FontColor];
+  FQuestion.Text := AQuestion;
+  FQuestion.TextAlign := TTextAlign.Center;
+  FQuestion.TextSettings.Font.Size := 18;
+  FQuestion.Margins.Left := 15;
+  FQuestion.Margins.Right := 5;
+  FQuestion.StyleLookup := 'listboxitemlabel';
+end;
+
+procedure TQuestionScrollItem.Resize;
+begin
+  inherited;
+  FDetails.Canvas.Font.Assign(FDetails.Font);
+  FDetails.Height := Ceil(FDetails.Canvas.TextHeight('Yy'));
+
+  FQuestion.Canvas.Font.Assign(FQuestion.Font);
+  var R := RectF(0, 0, Width - FQuestion.Margins.Left - FQuestion.Margins.Right, 10000);
+  FQuestion.Canvas.MeasureText(R, FQuestion.Text, True, [], TTextAlign.Center);
+  FQuestion.Height := Ceil(R.Height + FQuestion.Margins.Top + FQuestion.Margins.Bottom);
+
+  Height := Ceil((2 * FDetails.Height) + FDetails.Margins.Top + FDetails.Margins.Bottom +
+      FQuestion.Height + FQuestion.Margins.Top + FQuestion.Margins.Bottom);
 end;
 
 end.

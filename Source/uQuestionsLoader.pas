@@ -42,12 +42,15 @@ type
     FFields: TArray<TQuestionField>;
 
     [JSONMarshalledAttribute(False)]
-    FAudios: TArray<TAudioItem>;
+    FAudios: TObjectList<TAudioItem>;
     [JSONMarshalledAttribute(False)]
     FId: Integer;
 
     procedure PrepareEmptyValues;
   public
+    constructor Create;
+    destructor Destroy; override;
+
     function GetId: Integer;
     function GetQuestion: string;
     function GetSuggestions: string;
@@ -172,7 +175,6 @@ begin
       sr.Free;
     end;
     singleQuestion.FId := StrToIntDef(ExtractFileName(dir), 0);
-    SetLength(singleQuestion.FAudios, Length(audioFiles));
     for var idx := 0 to Length(audioFiles) - 1 do
     begin
       fs := TFileStream.Create(audioFiles[idx], fmOpenRead);
@@ -182,7 +184,7 @@ begin
         SetLength(buffer, fs.Size);
         fs.Read(buffer[0], fs.Size);
         newAudio.Data := buffer;
-        singleQuestion.FAudios[idx] := newAudio;
+        singleQuestion.FAudios.Add(newAudio);
       finally
         fs.Free;
       end;
@@ -214,6 +216,21 @@ begin
 end;
 
 { TQuestionItem }
+
+constructor TQuestionItem.Create;
+begin
+  inherited;
+  FAudios := TObjectList<TAudioItem>.Create;
+end;
+
+destructor TQuestionItem.Destroy;
+begin
+  FAudios.Free;
+  for var idx := Length(FFields) - 1 downto 0 do
+    FreeAndNil(FFields[idx]);
+  SetLength(FFields, 0);
+  inherited;
+end;
 
 function TQuestionItem.GetAlternateSpelling: string;
 begin
