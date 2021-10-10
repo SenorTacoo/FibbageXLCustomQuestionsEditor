@@ -2,7 +2,7 @@ object GetTextDlg: TGetTextDlg
   Left = 0
   Top = 0
   BorderStyle = Single
-  ClientHeight = 110
+  ClientHeight = 143
   ClientWidth = 444
   Position = OwnerFormCenter
   StyleBook = FrmMain.sbLightStyle
@@ -11,23 +11,9 @@ object GetTextDlg: TGetTextDlg
   FormFactor.Devices = [Desktop]
   OnCreate = FormCreate
   DesignerMasterStyle = 0
-  object eText: TEdit
-    Touch.InteractiveGestures = [LongTap, DoubleTap]
-    Align = Client
-    StyleLookup = 'editstyle'
-    TabOrder = 0
-    Margins.Left = 15.000000000000000000
-    Margins.Top = 10.000000000000000000
-    Margins.Right = 15.000000000000000000
-    Size.Width = 414.000000000000000000
-    Size.Height = 32.000000000000000000
-    Size.PlatformDefault = False
-    OnKeyDown = eTextKeyDown
-  end
   object gplButtons: TGridPanelLayout
     Align = Bottom
-    Margins.Top = 10.000000000000000000
-    Position.Y = 60.000000000000000000
+    Position.Y = 93.000000000000000000
     Size.Width = 444.000000000000000000
     Size.Height = 50.000000000000000000
     Size.PlatformDefault = False
@@ -74,5 +60,19 @@ object GetTextDlg: TGetTextDlg
       TabOrder = 1
       Text = 'Cancel'
     end
+  end
+  object eText: TEdit
+    Touch.InteractiveGestures = [LongTap, DoubleTap]
+    Align = Client
+    StyleLookup = 'editstyle'
+    TabOrder = 0
+    Margins.Left = 15.000000000000000000
+    Margins.Top = 5.000000000000000000
+    Margins.Right = 15.000000000000000000
+    Margins.Bottom = 5.000000000000000000
+    Size.Width = 414.000000000000000000
+    Size.Height = 32.000000000000000000
+    Size.PlatformDefault = False
+    OnKeyDown = eTextKeyDown
   end
 end

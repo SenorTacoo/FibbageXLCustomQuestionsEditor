@@ -115,7 +115,11 @@ end;
 procedure TFibbageContent.PrepareBackup(const APath: string);
 begin
   if DirectoryExists(APath) then
+  begin
+    if DirectoryExists(APath + '_backup') then
+      TDirectory.Delete(APath + '_backup', True);
     TDirectory.Move(APath, APath + '_backup');
+  end;
 end;
 
 procedure TFibbageContent.RemoveBackup(const APath: string);
@@ -127,7 +131,11 @@ end;
 procedure TFibbageContent.RestoreBackup(const APath: string);
 begin
   if DirectoryExists(APath + '_backup') then
+  begin
+    if TDirectory.Exists(APath) then
+      TDirectory.Delete(APath);
     TDirectory.Move(APath + '_backup', APath);
+  end;
 end;
 
 procedure TFibbageContent.PreSave;

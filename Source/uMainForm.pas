@@ -16,7 +16,8 @@ uses
   ACS_Classes, ACS_DXAudio, ACS_Vorbis, ACS_Converters, ACS_Wave,
   NewACDSAudio, System.Generics.Collections, uRecordForm, FMX.ListBox, 
   System.Messaging, System.DateUtils, uLog, uCategoriesLoader,
-  FMX.Menus, System.StrUtils, uGetTextDlg, FMX.Objects, FMX.DialogService, uAsyncAction;
+  FMX.Menus, System.StrUtils, uGetTextDlg, FMX.Objects, FMX.DialogService, uAsyncAction,
+  FMX.Effects;
 
 type
   TQuestionScrollItem = class(TPanel)
@@ -81,11 +82,6 @@ type
     bMenu: TButton;
     bImportQuestions: TButton;
     alMain: TActionList;
-    ToolBar1: TToolBar;
-    bMinimize: TButton;
-    bMaximize: TButton;
-    bClose: TButton;
-    lCaption: TLabel;
     tcEditTabs: TTabControl;
     tiShortieQuestions: TTabItem;
     tiEditSingleItem: TTabItem;
@@ -119,7 +115,6 @@ type
     pSingleItemAudio: TPanel;
     lSingleItemAudio: TLabel;
     tiFinalQuestions: TTabItem;
-    lyContent: TLayout;
     aGoToFinalQuestions: TChangeTabAction;
     aGoToShortieQuestions: TChangeTabAction;
     tiQuestions: TTabItem;
@@ -145,14 +140,13 @@ type
     aGoToHome: TChangeTabAction;
     bQuestions: TButton;
     sbxShortieQuestions: TVertScrollBox;
-    pBackground: TPanel;
     sbxFinalQuestions: TVertScrollBox;
     tbQuestionProjects: TToolBar;
     lProjects: TLabel;
     ToolBar2: TToolBar;
     lProjectQuestions: TLabel;
     ToolBar3: TToolBar;
-    Label2: TLabel;
+    lNewQuestion: TLabel;
     GridPanelLayout2: TGridPanelLayout;
     bShortieQuestions: TButton;
     bFinalQuestions: TButton;
@@ -209,6 +203,18 @@ type
     bSaveQuestionsAs: TButton;
     aSaveProjectAs: TAction;
     pLoading: TPanel;
+    pContent: TPanel;
+    pQuestionToolbar: TPanel;
+    pQuestionsToolbar: TPanel;
+    pProjectToolbar: TPanel;
+    pProjectsToolbar: TPanel;
+    GlowEffect1: TGlowEffect;
+    GlowEffect2: TGlowEffect;
+    GlowEffect3: TGlowEffect;
+    pQuestionsButtons: TPanel;
+    GlowEffect5: TGlowEffect;
+    pQuestionsMultiview: TPanel;
+    pProjectsMultiview: TPanel;
     procedure lDarkModeClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormResize(Sender: TObject);
@@ -322,11 +328,15 @@ implementation
 
 procedure TFrmMain.aAddQuestionExecute(Sender: TObject);
 begin
+  if FChangingTab then
+    Exit;
+
   if tcQuestions.ActiveTab = tiShortieQuestions then
     CreateNewShortieQuestion
   else
     CreateNewFinalQuestion;
 
+  lNewQuestion.Text := 'New question';
   GoToQuestionDetails;
 end;
 
@@ -358,6 +368,7 @@ begin
   FSelectedCategory := FLastClickedItemToEdit.OrgCategory;
   FLastClickedItemToEdit.Selected := True;
 
+  lNewQuestion.Text := 'Edit question';
   GoToQuestionDetails;
 end;
 
@@ -724,6 +735,7 @@ begin
       end;
   finally
     FLastClickedItemToEdit := nil;
+    aRemoveQuestions.Enabled := False;
     sbxShortieQuestions.EndUpdate;
   end;
 end;
@@ -751,6 +763,7 @@ begin
       end;
   finally
     FLastClickedItemToEdit := nil;
+    aRemoveQuestions.Enabled := False;
     sbxFinalQuestions.EndUpdate;
   end;
 end;
