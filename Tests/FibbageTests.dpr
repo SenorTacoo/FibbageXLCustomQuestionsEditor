@@ -16,7 +16,7 @@ uses
   uQuestionsLoaderTests in 'uQuestionsLoaderTests.pas',
   uQuestionsLoader in '..\Source\uQuestionsLoader.pas',
   uInterfaces in '..\Source\uInterfaces.pas',
-  uCategoriesLoaderTests in 'uCategoriesLoaderTests.pas',
+  uLog in '..\Source\uLog.pas',
   uCategoriesLoader in '..\Source\uCategoriesLoader.pas';
 
 {$IFNDEF TESTINSIGHT}
