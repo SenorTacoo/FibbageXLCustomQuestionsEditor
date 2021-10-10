@@ -11,6 +11,8 @@ type
   TAppConfig = class
   strict private const
     APP_CONFIG_NAME = 'FibbageQE.ini';
+    DEFAULT_LOGGING_BROKER = 'tcp://localhost:7337';
+    DEFAULT_LOGGING_SERVICE = 'Default';
   strict private class var
     FInstance: TAppConfig;
   public
@@ -19,6 +21,8 @@ type
   private
     FIniFile: TMemIniFile;
     FDarkModeEnabled: Boolean;
+    FLogBroker: string;
+    FLogService: string;
     function GetDarkModeEnabled: Boolean;
     procedure SetDarkModeEnabled(const Value: Boolean);
     function GetLastEditPath: string;
@@ -27,6 +31,10 @@ type
     function GetOutputDeviceName: string;
     procedure SetInputDeviceName(const Value: string);
     procedure SetOutputDeviceName(const Value: string);
+    function GetLogBroker: string;
+    function GetLogService: string;
+    procedure SetLogBroker(const Value: string);
+    procedure SetLogService(const Value: string);
   public
     constructor Create;
     destructor Destroy; override;
@@ -35,6 +43,8 @@ type
     property LastEditPath: string read GetLastEditPath write SetLastEditPath;
     property OutputDeviceName: string read GetOutputDeviceName write SetOutputDeviceName;
     property InputDeviceName: string read GetInputDeviceName write SetInputDeviceName;
+    property LogBroker: string read GetLogBroker write SetLogBroker;
+    property LogService: string read GetLogService write SetLogService;
   end;
 
 implementation
@@ -81,6 +91,16 @@ begin
   Result := FIniFile.ReadString('Config', 'LastEditPath', '');
 end;
 
+function TAppConfig.GetLogBroker: string;
+begin
+  Result := FIniFile.ReadString('Logging', 'LogBroker', DEFAULT_LOGGING_BROKER);
+end;
+
+function TAppConfig.GetLogService: string;
+begin
+  Result := FIniFile.ReadString('Logging', 'LogService', DEFAULT_LOGGING_SERVICE);
+end;
+
 function TAppConfig.GetOutputDeviceName: string;
 begin
   Result := FIniFile.ReadString('Audio', 'OutputDeviceName', '');
@@ -99,6 +119,16 @@ end;
 procedure TAppConfig.SetLastEditPath(const Value: string);
 begin
   FIniFile.WriteString('Config', 'LastEditPath', Value);
+end;
+
+procedure TAppConfig.SetLogBroker(const Value: string);
+begin
+  FIniFile.WriteString('Logging', 'LogBroker', Value);
+end;
+
+procedure TAppConfig.SetLogService(const Value: string);
+begin
+  FIniFile.WriteString('Logging', 'LogService', Value);
 end;
 
 procedure TAppConfig.SetOutputDeviceName(const Value: string);

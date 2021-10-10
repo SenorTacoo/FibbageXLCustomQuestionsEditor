@@ -13,13 +13,14 @@ uses
   uSpringContainer in 'uSpringContainer.pas',
   uRecordForm in 'uRecordForm.pas' {RecordForm},
   uLastQuestionsLoader in 'uLastQuestionsLoader.pas',
-  uSingleQuestionItem in 'uSingleQuestionItem.pas' {QuestionItemForm},
+  uConsts in 'uConsts.pas',
+  uLog in 'uLog.pas';
 
 {$R *.res}
 
 begin
-  {$ifdef mswindows}
-  ReportMemoryLeaksOnShutdown := DebugHook <> 0;
+  {$ifdef debug}
+  ReportMemoryLeaksOnShutdown := True;
   {$endif}
   Application.Initialize;
   Application.CreateForm(TFrmMain, FrmMain);
