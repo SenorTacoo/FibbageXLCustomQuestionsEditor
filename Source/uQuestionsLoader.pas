@@ -577,7 +577,7 @@ begin
   for var field in FFields do
     if SameText('HasCorrectAudio', field.N) then
     begin
-      field.V := BoolToStr(AHave, True);
+      field.V := BoolToStr(AHave, True).ToLowerInvariant;
       Break;
     end;
 end;
@@ -587,7 +587,7 @@ begin
   for var field in FFields do
     if SameText('HasBumperAudio', field.N) then
     begin
-      field.V := BoolToStr(AHave, True);
+      field.V := BoolToStr(AHave, True).ToLowerInvariant;
       Break;
     end;
 end;
@@ -597,7 +597,7 @@ begin
   for var field in FFields do
     if SameText('HasQuestionAudio', field.N) then
     begin
-      field.V := BoolToStr(AHave, True);
+      field.V := BoolToStr(AHave, True).ToLowerInvariant;
       Break;
     end;
 end;
