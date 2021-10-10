@@ -41,6 +41,8 @@ type
 
     procedure CopyToFinalQuestions(const AQuestion: IQuestion; out ANewQuestion: IQuestion);
     procedure CopyToShortieQuestions(const AQuestion: IQuestion; out ANewQuestion: IQuestion);
+    procedure MoveToFinalQuestions(const AQuestion: IQuestion);
+    procedure MoveToShortieQuestions(const AQuestion: IQuestion);
 
     procedure AddShortieQuestion;
     procedure AddFinalQuestion;
@@ -239,6 +241,26 @@ begin
       PostSaveFailed(APath);
     end;
   end;
+end;
+
+procedure TFibbageContent.MoveToFinalQuestions(const AQuestion: IQuestion);
+begin
+  FCategories.RemoveShortieCategory(AQuestion);
+  var category := FCategories.CreateNewFinalCategory;
+  category.CloneFrom(AQuestion.GetCategoryObj);
+
+  FQuestionsLoader.Questions.FinalQuestions.Add(AQuestion);
+  FQuestionsLoader.Questions.ShortieQuestions.Remove(AQuestion);
+end;
+
+procedure TFibbageContent.MoveToShortieQuestions(const AQuestion: IQuestion);
+begin
+  FCategories.RemoveFinalCategory(AQuestion);
+  var category := FCategories.CreateNewShortieCategory;
+  category.CloneFrom(AQuestion.GetCategoryObj);
+
+  FQuestionsLoader.Questions.ShortieQuestions.Add(AQuestion);
+  FQuestionsLoader.Questions.FinalQuestions.Remove(AQuestion);
 end;
 
 procedure TFibbageContent.Save;

@@ -572,12 +572,62 @@ end;
 
 procedure TFrmMain.aMoveToFinalQuestionsExecute(Sender: TObject);
 begin
-//
+  sbxShortieQuestions.BeginUpdate;
+  sbxFinalQuestions.BeginUpdate;
+  try
+    for var idx := FShortieVisItems.Count - 1 downto 0 do
+    begin
+      var item := FShortieVisItems[idx];
+      if not item.Selected then
+        Continue;
+
+      FContent.MoveToFinalQuestions(item.OrgQuestion);
+
+      var qItem := TQuestionScrollItem.CreateItem(sbxFinalQuestions, item.OrgQuestion);
+      qItem.Parent := sbxFinalQuestions;
+      qItem.Align := TAlignLayout.Top;
+      qItem.Position.Y := MaxInt;
+      qItem.OnMouseDown := OnFinalQuestionItemMouseDown;
+      qItem.OnDblClick := OnFinalQuestionItemDoubleClick;
+      FFinalVisItems.Add(qItem);
+
+      item := FShortieVisItems.ExtractAt(idx);
+      FreeAndNil(item);
+    end;
+  finally
+    sbxFinalQuestions.EndUpdate;
+    sbxShortieQuestions.EndUpdate;
+  end;
 end;
 
 procedure TFrmMain.aMoveToShortieQuestionsExecute(Sender: TObject);
 begin
-//
+  sbxShortieQuestions.BeginUpdate;
+  sbxFinalQuestions.BeginUpdate;
+  try
+    for var idx := FFinalVisItems.Count - 1 downto 0 do
+    begin
+      var item := FFinalVisItems[idx];
+      if not item.Selected then
+        Continue;
+
+      FContent.MoveToShortieQuestions(item.OrgQuestion);
+
+      var qItem := TQuestionScrollItem.CreateItem(sbxShortieQuestions, item.OrgQuestion);
+      qItem.Parent := sbxShortieQuestions;
+      qItem.Align := TAlignLayout.Top;
+      qItem.Position.Y := MaxInt;
+      qItem.OnMouseDown := OnShortieQuestionItemMouseDown;
+      qItem.OnDblClick := OnShortieQuestionItemDoubleClick;
+      FShortieVisItems.Add(qItem);
+
+      item := FFinalVisItems.ExtractAt(idx);
+      FreeAndNil(item);
+    end;
+  finally
+    sbxFinalQuestions.EndUpdate;
+    sbxShortieQuestions.EndUpdate;
+  end;
 end;
 
 procedure TFrmMain.ProcessInitializeProject;

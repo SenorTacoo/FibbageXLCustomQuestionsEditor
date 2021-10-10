@@ -133,6 +133,8 @@ type
 
     procedure CopyToFinalQuestions(const AQuestion: IQuestion; out ANewQuestion: IQuestion);
     procedure CopyToShortieQuestions(const AQuestion: IQuestion; out ANewQuestion: IQuestion);
+    procedure MoveToFinalQuestions(const AQuestion: IQuestion);
+    procedure MoveToShortieQuestions(const AQuestion: IQuestion);
 
     procedure AddShortieQuestion;
     procedure AddFinalQuestion;
