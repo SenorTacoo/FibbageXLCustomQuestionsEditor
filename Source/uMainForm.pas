@@ -31,7 +31,7 @@ type
   protected
     procedure Resize; override;
   public
-    constructor CreateItem(AOwner: TComponent; AQuestion: IQuestion; ACategory: ICategory);
+    constructor CreateItem(AOwner: TComponent; AQuestion: IQuestion);
     procedure RefreshData;
 
     property Selected: Boolean read FSelected write SetSelected;
@@ -292,6 +292,7 @@ type
   private
     FAppCreated: Boolean;
     FChangingTab: Boolean;
+    FQuestionsChanged: Boolean;
     FContent: IFibbageContent;
 
     FSelectedQuestion: IQuestion;
@@ -401,13 +402,51 @@ begin
 end;
 
 procedure TFrmMain.aCopyToFinalQuestionsExecute(Sender: TObject);
+var
+  newQuestion: IQuestion;
 begin
-//
+  sbxFinalQuestions.BeginUpdate;
+  try
+    for var item in FShortieVisItems do
+      if item.Selected then
+      begin
+        FContent.CopyToFinalQuestions(item.OrgQuestion, newQuestion);
+
+        var qItem := TQuestionScrollItem.CreateItem(sbxFinalQuestions, newQuestion);
+        qItem.Parent := sbxFinalQuestions;
+        qItem.Align := TAlignLayout.Top;
+        qItem.Position.Y := MaxInt;
+        qItem.OnMouseDown := OnFinalQuestionItemMouseDown;
+        qItem.OnDblClick := OnFinalQuestionItemDoubleClick;
+        FFinalVisItems.Add(qItem);
+      end;
+  finally
+    sbxFinalQuestions.EndUpdate;
+  end;
 end;
 
 procedure TFrmMain.aCopyToShortieQuestionsExecute(Sender: TObject);
+var
+  newQuestion: IQuestion;
 begin
-//
+  sbxShortieQuestions.BeginUpdate;
+  try
+    for var item in FFinalVisItems do
+      if item.Selected then
+      begin
+        FContent.CopyToShortieQuestions(item.OrgQuestion, newQuestion);
+
+        var qItem := TQuestionScrollItem.CreateItem(sbxShortieQuestions, newQuestion);
+        qItem.Parent := sbxShortieQuestions;
+        qItem.Align := TAlignLayout.Top;
+        qItem.Position.Y := MaxInt;
+        qItem.OnMouseDown := OnShortieQuestionItemMouseDown;
+        qItem.OnDblClick := OnShortieQuestionItemDoubleClick;
+        FShortieVisItems.Add(qItem);
+      end;
+  finally
+    sbxShortieQuestions.EndUpdate;
+  end;
 end;
 
 procedure TFrmMain.AddLastChoosenProject;
@@ -514,7 +553,7 @@ end;
 
 procedure TFrmMain.aInitializeProjectExecute(Sender: TObject);
 begin
-  if Assigned(FContent) then
+  if Assigned(FContent) and FQuestionsChanged then
   begin
     TDialogService.MessageDialog('Save changes?', TMsgDlgType.mtInformation,
       [TMsgDlgBtn.mbYes, TMsgDlgBtn.mbNo, TMsgDlgBtn.mbCancel], TMsgDlgBtn.mbCancel, 0,
@@ -543,6 +582,7 @@ end;
 
 procedure TFrmMain.ProcessInitializeProject;
 begin
+  FQuestionsChanged := False;
   FSelectedConfiguration := nil;
   for var item in FProjectVisItems do
     if item.Selected then
@@ -819,6 +859,7 @@ begin
 
   pLoading.Visible := False;
   aiContentLoading.Enabled := False;
+  FQuestionsChanged := False;
 end;
 
 procedure TFrmMain.SaveProc;
@@ -836,11 +877,14 @@ begin
   if FChangingTab then
     Exit;
 
+  FQuestionsChanged := True;
+
   FSelectedQuestion.SetQuestion(mSingleItemQuestion.Text.Trim);
   FSelectedQuestion.SetAnswer(mSingleItemAnswer.Text.Trim);
   FSelectedQuestion.SetAlternateSpelling(mSingleItemAlternateSpelling.Text.Replace(', ', ',').Trim);
   FSelectedQuestion.SetSuggestions(mSingleItemSuggestions.Text.Replace(', ', ',').Trim);
   FSelectedQuestion.SetId(StrToIntDef(eSingleItemId.Text.Trim, Random(High(Word))));
+  FSelectedQuestion.SetCategory(eSingleItemCategory.Text.Trim);
 
   FSelectedCategory.SetId(FSelectedQuestion.GetId);
   FSelectedCategory.SetCategory(eSingleItemCategory.Text.Trim);
@@ -901,6 +945,7 @@ procedure TFrmMain.OnPostSave;
 begin
   pLoading.Visible := False;
   aiContentLoading.Enabled := False;
+  FQuestionsChanged := False;
 end;
 
 procedure TFrmMain.bQuestionsClick(Sender: TObject);
@@ -1223,7 +1268,7 @@ begin
   try
     for var item in FContent.Questions.ShortieQuestions do
     begin
-      var qItem := TQuestionScrollItem.CreateItem(sbxShortieQuestions, item, FContent.Categories.GetShortieCategory(item));
+      var qItem := TQuestionScrollItem.CreateItem(sbxShortieQuestions, item);
       qItem.Parent := sbxShortieQuestions;
       qItem.Align := TAlignLayout.Top;
       qItem.Position.Y := MaxInt;
@@ -1242,7 +1287,7 @@ begin
   try
     for var item in FContent.Questions.FinalQuestions do
     begin
-      var qItem := TQuestionScrollItem.CreateItem(sbxFinalQuestions, item, FContent.Categories.GetFinalCategory(item));
+      var qItem := TQuestionScrollItem.CreateItem(sbxFinalQuestions, item);
       qItem.Parent := sbxFinalQuestions;
       qItem.Align := TAlignLayout.Top;
       qItem.Position.Y := MaxInt;
@@ -1280,18 +1325,29 @@ begin
   aRemoveQuestions.Text := IfThen(selCnt > 1, 'Remove questions', 'Remove question');
   aRemoveQuestions.Enabled := selCnt > 0;
   aEditQuestion.Enabled := Assigned(FLastClickedItemToEdit) and (selCnt = 1);
+
+  if tcQuestions.ActiveTab = tiShortieQuestions then
+  begin
+    aCopyToFinalQuestions.Enabled := selCnt > 0;
+    aMoveToFinalQuestions.Enabled := selCnt > 0;
+  end
+  else
+  begin
+    aCopyToShortieQuestions.Enabled := selCnt > 0;
+    aMoveToShortieQuestions.Enabled := selCnt > 0;
+  end;
 end;
 
 procedure TFrmMain.CreateNewShortieQuestion;
 begin
   FContent.AddShortieQuestion;
   FSelectedQuestion := FContent.Questions.ShortieQuestions.Last;
-  FSelectedCategory := FContent.Categories.GetShortieCategory(FSelectedQuestion);
+  FSelectedCategory := FSelectedQuestion.GetCategoryObj;
 
   sbxShortieQuestions.BeginUpdate;
   try
     FShortieVisItems.ClearSelection;
-    var qItem := TQuestionScrollItem.CreateItem(sbxShortieQuestions, FSelectedQuestion, FSelectedCategory);
+    var qItem := TQuestionScrollItem.CreateItem(sbxShortieQuestions, FSelectedQuestion);
     qItem.Parent := sbxShortieQuestions;
     qItem.Align := TAlignLayout.Top;
     qItem.Position.Y := MaxInt;
@@ -1310,12 +1366,12 @@ procedure TFrmMain.CreateNewFinalQuestion;
 begin
   FContent.AddFinalQuestion;
   FSelectedQuestion := FContent.Questions.FinalQuestions.Last;
-  FSelectedCategory := FContent.Categories.GetFinalCategory(FSelectedQuestion);
+  FSelectedCategory := FSelectedQuestion.GetCategoryObj;
 
   sbxFinalQuestions.BeginUpdate;
   try
     FFinalVisItems.ClearSelection;
-    var qItem := TQuestionScrollItem.CreateItem(sbxFinalQuestions, FSelectedQuestion, FSelectedCategory);
+    var qItem := TQuestionScrollItem.CreateItem(sbxFinalQuestions, FSelectedQuestion);
     qItem.Parent := sbxFinalQuestions;
     qItem.Align := TAlignLayout.Top;
     qItem.Position.Y := MaxInt;
@@ -1676,7 +1732,7 @@ end;
 
 { TQuestionScrollItem }
 
-constructor TQuestionScrollItem.CreateItem(AOwner: TComponent; AQuestion: IQuestion; ACategory: ICategory);
+constructor TQuestionScrollItem.CreateItem(AOwner: TComponent; AQuestion: IQuestion);
 begin
   inherited Create(AOwner);
 
@@ -1684,7 +1740,7 @@ begin
   HitTest := True;
 
   FOrgQuestion := AQuestion;
-  FOrgCategory := ACategory;
+  FOrgCategory := AQuestion.GetCategoryObj;
 
   FDetails := TLabel.Create(AOwner);
   FDetails.Parent := Self;

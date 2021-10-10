@@ -19,13 +19,16 @@ type
     FCategory: string;
     FBumper: string;
   public
+    procedure CloneFrom(AObj: ICategory);
+
     function GetId: Integer;
     function GetCategory: string;
+    function GetIsValidForFamilyFilter: Boolean;
 
     procedure SetId(AId: Integer);
     procedure SetCategory(const ACategory: string);
+    procedure SetIsValidForFamilyFilter(AValue: Boolean);
 
-    function X: Boolean;
     function Bumper: string;
   end;
 
@@ -74,8 +77,8 @@ type
     function GetFinalCategory(AQuestion: IQuestion): ICategory;
 
     procedure LoadCategories(const AContentDir: string);
-    function CreateNewShortieCategory: Integer;
-    function CreateNewFinalCategory: Integer;
+    function CreateNewShortieCategory: ICategory;
+    function CreateNewFinalCategory: ICategory;
     procedure RemoveShortieCategory(AQuestion: IQuestion);
     procedure RemoveFinalCategory(AQuestion: IQuestion);
     procedure Save(const APath: string);
@@ -96,18 +99,18 @@ begin
   Result.SetId(GetAvailableId);
 end;
 
-function TFibbageCategories.CreateNewFinalCategory: Integer;
+function TFibbageCategories.CreateNewFinalCategory: ICategory;
 begin
   var newCategory := CreateNewCategory;
   FFinalCategories.Add(newCategory);
-  Result := newCategory.GetId;
+  Result := newCategory;
 end;
 
-function TFibbageCategories.CreateNewShortieCategory: Integer;
+function TFibbageCategories.CreateNewShortieCategory: ICategory;
 begin
   var newCategory := CreateNewCategory;
   FShortieCategories.Add(newCategory);
-  Result := newCategory.GetId;
+  Result := newCategory;
 end;
 
 destructor TFibbageCategories.Destroy;
@@ -330,6 +333,13 @@ begin
   Result := FBumper;
 end;
 
+procedure TCategoryData.CloneFrom(AObj: ICategory);
+begin
+  SetId(AObj.GetId);
+  SetCategory(AObj.GetCategory);
+  SetIsValidForFamilyFilter(AObj.GetIsValidForFamilyFilter);
+end;
+
 function TCategoryData.GetCategory: string;
 begin
   Result := FCategory;
@@ -338,6 +348,11 @@ end;
 function TCategoryData.GetId: Integer;
 begin
   Result := FId;
+end;
+
+function TCategoryData.GetIsValidForFamilyFilter: Boolean;
+begin
+  Result := FX;
 end;
 
 procedure TCategoryData.SetCategory(const ACategory: string);
@@ -350,9 +365,9 @@ begin
   FId := AId;
 end;
 
-function TCategoryData.X: Boolean;
+procedure TCategoryData.SetIsValidForFamilyFilter(AValue: Boolean);
 begin
-  Result := FX;
+  FX := AValue;
 end;
 
 end.

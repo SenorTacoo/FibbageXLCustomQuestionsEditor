@@ -41,6 +41,8 @@ type
     FAnswerAudioBytes: TBytes;
     [JSONMarshalledAttribute(False)]
     FBumperAudioBytes: TBytes;
+    [JSONMarshalledAttribute(False)]
+    FCategory: ICategory;
 
     procedure PrepareEmptyValues;
     procedure SetHaveQuestionAudio(AHave: Boolean);
@@ -58,6 +60,7 @@ type
     destructor Destroy; override;
 
     procedure SetDefaults;
+    procedure CloneFrom(AObj: IQuestion);
 
     function GetId: Integer;
     function GetQuestion: string;
@@ -81,6 +84,12 @@ type
     procedure SetQuestionAudioData(const AData: TBytes);
     procedure SetAnswerAudioData(const AData: TBytes);
     procedure SetBumperAudioData(const AData: TBytes);
+
+    function GetCategoryObj: ICategory;
+    procedure SetCategoryObj(ACategory: ICategory); {do not clone}
+
+    function GetCategory: string;
+    procedure SetCategory(const ACategory: string);
 
     procedure Save(const APath: string);
 
@@ -265,6 +274,7 @@ end;
 
 destructor TQuestionItem.Destroy;
 begin
+  FCategory := nil;
   for var idx := Length(FFields) - 1 downto 0 do
     FreeAndNil(FFields[idx]);
   SetLength(FFields, 0);
@@ -302,6 +312,22 @@ begin
       Result := field.V;
       Break;
     end;
+end;
+
+function TQuestionItem.GetCategory: string;
+begin
+  Result := '';
+  for var field in FFields do
+    if SameText('Category', field.N) then
+    begin
+      Result := field.V;
+      Break;
+    end;
+end;
+
+function TQuestionItem.GetCategoryObj: ICategory;
+begin
+  Result := FCategory;
 end;
 
 function TQuestionItem.GetHaveAnswerAudio: Boolean;
@@ -425,6 +451,20 @@ begin
       LogE('Have bumper audio but audio file is empty');
 end;
 
+procedure TQuestionItem.CloneFrom(AObj: IQuestion);
+begin
+  SetId(AObj.GetId);
+  SetQuestion(AObj.GetQuestion);
+  SetSuggestions(AObj.GetSuggestions);
+  SetAnswer(AObj.GetAnswer);
+  SetAlternateSpelling(AObj.GetAlternateSpelling);
+  SetQuestionAudioData(AObj.GetQuestionAudioData);
+  SetAnswerAudioData(AObj.GetAnswerAudioData);
+  SetBumperAudioData(AObj.GetBumperAudioData);
+  SetQuestionType(AObj.GetQuestionType);
+  SetCategory(AObj.GetCategory);
+end;
+
 procedure TQuestionItem.CreateAudioFile(const APath: string; const AData: TBytes);
 begin
   var fs := TFileStream.Create(APath, fmCreate);
@@ -500,6 +540,21 @@ begin
       SetHaveBumperAudio(not AName.IsEmpty);
       Break;
     end;
+end;
+
+procedure TQuestionItem.SetCategory(const ACategory: string);
+begin
+  for var field in FFields do
+    if SameText('Category', field.N) then
+    begin
+      field.V := ACategory;
+      Break;
+    end;
+end;
+
+procedure TQuestionItem.SetCategoryObj(ACategory: ICategory);
+begin
+  FCategory := ACategory;
 end;
 
 procedure TQuestionItem.SetDefaults;

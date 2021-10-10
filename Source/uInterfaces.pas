@@ -19,8 +19,13 @@ type
     ['{A0359347-2ED4-4141-88D4-F83BD6BEA2B4}']
     function GetId: Integer;
     function GetCategory: string;
+    function GetIsValidForFamilyFilter: Boolean;
+
     procedure SetId(AId: Integer);
     procedure SetCategory(const ACategory: string);
+    procedure SetIsValidForFamilyFilter(AValue: Boolean);
+
+    procedure CloneFrom(AObj: ICategory);
   end;
 
   ICategories = interface
@@ -38,8 +43,8 @@ type
     function GetFinalCategory(AQuestion: IQuestion): ICategory;
     procedure LoadCategories(const AContentDir: string);
     function GetAvailableId: Word;
-    function CreateNewShortieCategory: Integer;
-    function CreateNewFinalCategory: Integer;
+    function CreateNewShortieCategory: ICategory;
+    function CreateNewFinalCategory: ICategory;
     procedure RemoveShortieCategory(AQuestion: IQuestion);
     procedure RemoveFinalCategory(AQuestion: IQuestion);
     procedure Save(const APath: string);
@@ -61,6 +66,8 @@ type
     function GetQuestionAudioData: TBytes;
     function GetAnswerAudioData: TBytes;
     function GetBumperAudioData: TBytes;
+    function GetCategoryObj: ICategory;
+    function GetCategory: string;
 
     procedure SetId(AId: Integer);
     procedure SetQuestion(const AQuestion: string);
@@ -70,6 +77,8 @@ type
     procedure SetQuestionAudioData(const AData: TBytes);
     procedure SetAnswerAudioData(const AData: TBytes);
     procedure SetBumperAudioData(const AData: TBytes);
+    procedure SetCategory(const ACategory: string);
+    procedure SetCategoryObj(ACategory: ICategory);
 
     function GetQuestionType: TQuestionType;
     procedure SetQuestionType(AQuestionType: TQuestionType);
@@ -121,6 +130,9 @@ type
 
     procedure Save; overload;
     procedure Save(const APath: string; ASaveOptions: TSaveOptions = []); overload;
+
+    procedure CopyToFinalQuestions(const AQuestion: IQuestion; out ANewQuestion: IQuestion);
+    procedure CopyToShortieQuestions(const AQuestion: IQuestion; out ANewQuestion: IQuestion);
 
     procedure AddShortieQuestion;
     procedure AddFinalQuestion;

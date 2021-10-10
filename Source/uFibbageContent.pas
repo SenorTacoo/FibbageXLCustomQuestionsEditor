@@ -26,6 +26,7 @@ type
     procedure PostSaveSuccessful(const APath: string);
     procedure PreSave(const APath: string);
     procedure InnerSave(const APath: string; ASaveOptions: TSaveOptions = []);
+    procedure AssignCategoryToQuestion;
   public
     constructor Create(ACategories: IFibbageCategories; AQuestionsLoader: IQuestionsLoader);
 
@@ -37,6 +38,9 @@ type
 
     procedure Save; overload;
     procedure Save(const APath: string; ASaveOptions: TSaveOptions = []); overload;
+
+    procedure CopyToFinalQuestions(const AQuestion: IQuestion; out ANewQuestion: IQuestion);
+    procedure CopyToShortieQuestions(const AQuestion: IQuestion; out ANewQuestion: IQuestion);
 
     procedure AddShortieQuestion;
     procedure AddFinalQuestion;
@@ -51,22 +55,26 @@ implementation
 
 procedure TFibbageContent.AddFinalQuestion;
 begin
-  var id := FCategories.CreateNewFinalCategory;
+  var category := FCategories.CreateNewFinalCategory;
   var question := TQuestionItem.Create;
-  question.SetId(id);
-  question.SetQuestionType(qtFinal);
   question.SetDefaults;
+
+  question.SetCategoryObj(category);
+  question.SetId(category.GetId);
+  question.SetQuestionType(qtFinal);
 
   FQuestionsLoader.Questions.FinalQuestions.Add(question);
 end;
 
 procedure TFibbageContent.AddShortieQuestion;
 begin
-  var id := FCategories.CreateNewShortieCategory;
+  var category := FCategories.CreateNewShortieCategory;
   var question := TQuestionItem.Create;
-  question.SetId(id);
-  question.SetQuestionType(qtShortie);
+
   question.SetDefaults;
+  question.SetCategoryObj(category);
+  question.SetId(category.GetId);
+  question.SetQuestionType(qtShortie);
 
   FQuestionsLoader.Questions.ShortieQuestions.Add(question);
 end;
@@ -74,6 +82,42 @@ end;
 function TFibbageContent.Categories: IFibbageCategories;
 begin
   Result := FCategories;
+end;
+
+procedure TFibbageContent.CopyToFinalQuestions(const AQuestion: IQuestion;
+  out ANewQuestion: IQuestion);
+begin
+  var newQuestion := TQuestionItem.Create;
+  newQuestion.SetDefaults;
+  newQuestion.CloneFrom(AQuestion);
+
+  var newCategory := FCategories.CreateNewFinalCategory;
+  newCategory.CloneFrom(AQuestion.GetCategoryObj);
+
+  newCategory.SetId(FCategories.GetAvailableId);
+  newQuestion.SetId(newCategory.GetId);
+  newQuestion.SetCategoryObj(newCategory);
+
+  FQuestionsLoader.Questions.FinalQuestions.Add(newQuestion);
+  ANewQuestion := newQuestion;
+end;
+
+procedure TFibbageContent.CopyToShortieQuestions(const AQuestion: IQuestion;
+  out ANewQuestion: IQuestion);
+begin
+  var newQuestion := TQuestionItem.Create;
+  newQuestion.SetDefaults;
+  newQuestion.CloneFrom(AQuestion);
+
+  var newCategory := FCategories.CreateNewShortieCategory;
+  newCategory.CloneFrom(AQuestion.GetCategoryObj);
+
+  newCategory.SetId(FCategories.GetAvailableId);
+  newQuestion.SetId(newCategory.GetId);
+  newQuestion.SetCategoryObj(newCategory);
+
+  FQuestionsLoader.Questions.ShortieQuestions.Add(newQuestion);
+  ANewQuestion := newQuestion;
 end;
 
 constructor TFibbageContent.Create(ACategories: IFibbageCategories;
@@ -95,6 +139,28 @@ begin
 
   FCategories.LoadCategories(GetPath);
   FQuestionsLoader.LoadQuestions(GetPath);
+  AssignCategoryToQuestion;
+end;
+
+procedure TFibbageContent.AssignCategoryToQuestion;
+begin
+  for var item in FQuestionsLoader.Questions.ShortieQuestions do
+  begin
+    var category := FCategories.GetShortieCategory(item);
+    if Assigned(category) then
+      item.SetCategoryObj(category)
+    else
+      LogE('AssignCategoryToQuestion, have shortie question (%d) without category', [item.GetId]);
+  end;
+
+  for var item in FQuestionsLoader.Questions.FinalQuestions do
+  begin
+    var category := FCategories.GetFinalCategory(item);
+    if Assigned(category) then
+      item.SetCategoryObj(category)
+    else
+      LogE('AssignCategoryToQuestion, have final question (%d) without category', [item.GetId]);
+  end;
 end;
 
 function TFibbageContent.Questions: IFibbageQuestions;
