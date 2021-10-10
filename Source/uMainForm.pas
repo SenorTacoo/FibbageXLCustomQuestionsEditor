@@ -151,12 +151,12 @@ type
     bFinalQuestions: TButton;
     bNewProject: TButton;
     lineTabs: TLine;
-    pmQuestions: TPopupMenu;
     miAddQuestion: TMenuItem;
     miEditQuestion: TMenuItem;
     miRemoveQuestions: TMenuItem;
     aRemoveQuestions: TAction;
     aAddQuestion: TAction;
+    pmShortieQuestions: TPopupMenu;
     aEditQuestion: TAction;
     lyProjectsContent: TLayout;
     lyQuestionsContent: TLayout;
@@ -184,19 +184,11 @@ type
     miEditProjectDetails: TMenuItem;
     miRemoveProject: TMenuItem;
     miImportProject: TMenuItem;
-    aEditProjectDetails: TAction;
+    aEditProjectName: TAction;
     miAddSeparator: TMenuItem;
     miEditSeparator: TMenuItem;
     aRemoveProjectsAllData: TAction;
     aRemoveProjectsJustLastInfo: TAction;
-    tiEditProject: TTabItem;
-    ToolBar4: TToolBar;
-    lEditProject: TLabel;
-    lyEditProjectName: TLayout;
-    eProjectName: TEdit;
-    lEditProjectName: TLabel;
-    lyEditProjectContent: TLayout;
-    aGoToEditProject: TChangeTabAction;
     miEditProjectQuestions: TMenuItem;
     bSaveQuestionsAs: TButton;
     aSaveProjectAs: TAction;
@@ -204,10 +196,8 @@ type
     pContent: TPanel;
     pQuestionToolbar: TPanel;
     pQuestionsToolbar: TPanel;
-    pProjectToolbar: TPanel;
     pProjectsToolbar: TPanel;
     GlowEffect1: TGlowEffect;
-    GlowEffect2: TGlowEffect;
     GlowEffect3: TGlowEffect;
     pQuestionsButtons: TPanel;
     GlowEffect5: TGlowEffect;
@@ -220,13 +210,40 @@ type
     bSaveQuestionChanges: TButton;
     aSaveQuestionChanges: TAction;
     aCancelQuestionChanges: TAction;
-    bSaveProjectChanges: TButton;
-    bCancelProjectChanges: TButton;
     aSaveProjectChanges: TAction;
-    aCancelProjectChanges: TAction;
     miEditProject: TMenuItem;
     miActivateProject: TMenuItem;
     aSetProjectAsActive: TAction;
+    MenuItem2: TMenuItem;
+    miCopyToFinal: TMenuItem;
+    MenuItem3: TMenuItem;
+    pmFinalQuestions: TPopupMenu;
+    MenuItem7: TMenuItem;
+    miCopyToShorties: TMenuItem;
+    miMoveToShorties: TMenuItem;
+    aCopyToFinalQuestions: TAction;
+    aMoveToFinalQuestions: TAction;
+    aCopyToShortieQuestions: TAction;
+    aMoveToShortieQuestions: TAction;
+    miAddFinalQuestion: TMenuItem;
+    miEditFinalQuestion: TMenuItem;
+    miRemoveFinalQuestions: TMenuItem;
+    bSettings: TButton;
+    aGoToSettings: TChangeTabAction;
+    tiSettings: TTabItem;
+    ToolBar1: TToolBar;
+    Panel1: TPanel;
+    lSettings: TLabel;
+    GlowEffect4: TGlowEffect;
+    bGoBackFromSettings: TButton;
+    bCancelChangesSettings: TButton;
+    aSaveChangesSettings: TAction;
+    aCancelChangesSettings: TAction;
+    Layout2: TLayout;
+    lSettingsGamePath: TLabel;
+    eSettingsGamePath: TEdit;
+    bSettingsGamePath: TButton;
+    aGetGamePath: TAction;
     procedure lDarkModeClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormResize(Sender: TObject);
@@ -244,7 +261,7 @@ type
     procedure aRemoveQuestionsExecute(Sender: TObject);
     procedure aAddQuestionExecute(Sender: TObject);
     procedure aEditQuestionExecute(Sender: TObject);
-    procedure pmQuestionsPopup(Sender: TObject);
+    procedure pmShortieQuestionsPopup(Sender: TObject);
     procedure aNewProjectExecute(Sender: TObject);
     procedure aSaveProjectExecute(Sender: TObject);
     procedure aImportProjectExecute(Sender: TObject);
@@ -254,7 +271,7 @@ type
     procedure sDarkModeSwitch(Sender: TObject);
     procedure aRemoveProjectsExecute(Sender: TObject);
     procedure aInitializeProjectExecute(Sender: TObject);
-    procedure aEditProjectDetailsExecute(Sender: TObject);
+    procedure aEditProjectNameExecute(Sender: TObject);
     procedure pmProjectsPopup(Sender: TObject);
     procedure aRemoveProjectsAllDataExecute(Sender: TObject);
     procedure aRemoveProjectsJustLastInfoExecute(Sender: TObject);
@@ -262,10 +279,16 @@ type
     procedure aOpenInWindowsExplorerExecute(Sender: TObject);
     procedure aSaveQuestionChangesExecute(Sender: TObject);
     procedure aCancelQuestionChangesExecute(Sender: TObject);
-    procedure aSaveProjectChangesExecute(Sender: TObject);
-    procedure aCancelProjectChangesExecute(Sender: TObject);
     procedure mDisableEnter(Sender: TObject; var Key: Word; var KeyChar: Char; Shift: TShiftState);
     procedure aSetProjectAsActiveExecute(Sender: TObject);
+    procedure aCopyToFinalQuestionsExecute(Sender: TObject);
+    procedure aMoveToFinalQuestionsExecute(Sender: TObject);
+    procedure aCopyToShortieQuestionsExecute(Sender: TObject);
+    procedure aMoveToShortieQuestionsExecute(Sender: TObject);
+    procedure aSaveChangesSettingsExecute(Sender: TObject);
+    procedure aCancelChangesSettingsExecute(Sender: TObject);
+    procedure bSettingsClick(Sender: TObject);
+    procedure aGetGamePathExecute(Sender: TObject);
   private
     FAppCreated: Boolean;
     FChangingTab: Boolean;
@@ -296,7 +319,7 @@ type
     procedure GoToShortieQuestions;
     procedure GoToAllQuestions;
     procedure GoToHome;
-    procedure GoToEditProject;
+    procedure GoToSettings;
 
     procedure PrepareMultiViewButtons(AActTab: TAppTab);
     procedure OnProjectItemDoubleClick(Sender: TObject);
@@ -335,6 +358,7 @@ type
     procedure ActivateProjectProc;
     procedure OnActivateEnd;
     procedure OnActivateStart;
+    function GetFibbagePath(out APath: string): Boolean;
   public
     { Public declarations }
   end;
@@ -360,7 +384,7 @@ begin
   GoToQuestionDetails;
 end;
 
-procedure TFrmMain.aCancelProjectChangesExecute(Sender: TObject);
+procedure TFrmMain.aCancelChangesSettingsExecute(Sender: TObject);
 begin
   if FChangingTab then
     Exit;
@@ -376,6 +400,16 @@ begin
   GoToAllQuestions;
 end;
 
+procedure TFrmMain.aCopyToFinalQuestionsExecute(Sender: TObject);
+begin
+//
+end;
+
+procedure TFrmMain.aCopyToShortieQuestionsExecute(Sender: TObject);
+begin
+//
+end;
+
 procedure TFrmMain.AddLastChoosenProject;
 begin
   FLastQuestionProjects.BeginUpdate;
@@ -386,13 +420,26 @@ begin
   end;
 end;
 
-procedure TFrmMain.aEditProjectDetailsExecute(Sender: TObject);
+procedure TFrmMain.aEditProjectNameExecute(Sender: TObject);
 begin
   if not Assigned(FLastClickedConfiguration) then
     Exit;
 
-  eProjectName.Text := FLastClickedConfiguration.OrgConfiguration.GetName;
-  GoToEditProject;
+  var name := FLastClickedConfiguration.OrgConfiguration.GetName;
+  var dlg := TGetTextDlg.Create(Self);
+  try
+    if not dlg.GetText('Enter project name:', name) then
+      Exit;
+
+    var doSave := name <> FLastClickedConfiguration.OrgConfiguration.GetName;
+
+    FLastClickedConfiguration.OrgConfiguration.SetName(name);
+    FLastClickedConfiguration.RefreshData;
+    if doSave then
+      FLastClickedConfiguration.OrgConfiguration.Save(FLastClickedConfiguration.OrgConfiguration.GetPath);
+  finally
+    dlg.Free;
+  end;
 end;
 
 procedure TFrmMain.aEditQuestionExecute(Sender: TObject);
@@ -406,6 +453,21 @@ begin
 
   lNewQuestion.Text := 'Edit question';
   GoToQuestionDetails;
+end;
+
+procedure TFrmMain.aGetGamePathExecute(Sender: TObject);
+var
+  path: string;
+begin
+  if not GetFibbagePath(path) then
+    Exit;
+
+  eSettingsGamePath.Text := path;
+end;
+
+function TFrmMain.GetFibbagePath(out APath: string): Boolean;
+begin
+  Result := SelectDirectory('Select FibbageXL directory', '', APath);
 end;
 
 procedure TFrmMain.aImportProjectExecute(Sender: TObject);
@@ -467,6 +529,16 @@ begin
   end
   else
     ProcessInitializeProject;
+end;
+
+procedure TFrmMain.aMoveToFinalQuestionsExecute(Sender: TObject);
+begin
+//
+end;
+
+procedure TFrmMain.aMoveToShortieQuestionsExecute(Sender: TObject);
+begin
+//
 end;
 
 procedure TFrmMain.ProcessInitializeProject;
@@ -712,6 +784,16 @@ begin
     RemoveSelectedFinalQuestions;
 end;
 
+procedure TFrmMain.aSaveChangesSettingsExecute(Sender: TObject);
+begin
+  if FChangingTab then
+    Exit;
+
+  TAppConfig.GetInstance.FibbagePath := eSettingsGamePath.Text;
+
+  GoToHome;
+end;
+
 procedure TFrmMain.aSaveProjectAsExecute(Sender: TObject);
 var
   path: string;
@@ -721,20 +803,6 @@ begin
   FSelectedConfiguration.SetPath(path);
 
   TAsyncAction.Create(OnPreSaveAs, OnPostSaveAs, SaveProc).Start;
-end;
-
-procedure TFrmMain.aSaveProjectChangesExecute(Sender: TObject);
-begin
-  if FChangingTab then
-    Exit;
-
-  var doSave := eProjectName.Text <> FLastClickedConfiguration.OrgConfiguration.GetName;
-
-  FLastClickedConfiguration.OrgConfiguration.SetName(eProjectName.Text);
-  FLastClickedConfiguration.RefreshData;
-  if doSave then
-    FLastClickedConfiguration.OrgConfiguration.Save(FLastClickedConfiguration.OrgConfiguration.GetPath);
-  GoToHome;
 end;
 
 procedure TFrmMain.OnPreSaveAs;
@@ -790,8 +858,8 @@ var
   path: string;
 begin
   if TAppConfig.GetInstance.FibbagePath.IsEmpty then
-    if SelectDirectory('Select FibbageXL directory', '', path) then
-      TAppConfig.GetInstance.FibbagePath := path // todo is valid path
+    if GetFibbagePath(path) then
+      TAppConfig.GetInstance.FibbagePath := path
     else
       Exit;
 
@@ -943,7 +1011,7 @@ begin
     finally
       sbxFinalQuestions.EndUpdate;
     end;
-    pmQuestions.Popup(Screen.MousePos.X, Screen.MousePos.Y);
+    pmFinalQuestions.Popup(Screen.MousePos.X, Screen.MousePos.Y);
   end
   else if ssDouble in Shift then
   begin
@@ -1092,7 +1160,7 @@ begin
     finally
       sbxShortieQuestions.EndUpdate;
     end;
-    pmQuestions.Popup(Screen.MousePos.X, Screen.MousePos.Y);
+    pmShortieQuestions.Popup(Screen.MousePos.X, Screen.MousePos.Y);
   end
   else if ssDouble in Shift then
   begin
@@ -1193,7 +1261,7 @@ begin
 
   aRemoveProjects.Text := IfThen(selCnt > 1, 'Remove projects', 'Remove project');
   aRemoveProjects.Enabled := selCnt > 0;
-  aEditProjectDetails.Enabled := Assigned(FLastClickedConfigurationToEdit) and (selCnt = 1);
+  aEditProjectName.Enabled := Assigned(FLastClickedConfigurationToEdit) and (selCnt = 1);
   aInitializeProject.Enabled := selCnt > 0;
   aOpenInWindowsExplorer.Visible := selCnt > 0;
   aSetProjectAsActive.Visible := selCnt > 0;
@@ -1201,7 +1269,7 @@ begin
   MenuItem1.Visible := aOpenInWindowsExplorer.Visible or aSetProjectAsActive.Visible;
 end;
 
-procedure TFrmMain.pmQuestionsPopup(Sender: TObject);
+procedure TFrmMain.pmShortieQuestionsPopup(Sender: TObject);
 var
   selCnt: Integer;
 begin
@@ -1283,16 +1351,6 @@ begin
   PrepareMultiViewButtons(atQuestions);
 end;
 
-procedure TFrmMain.GoToEditProject;
-begin
-  FChangingTab := True;
-  try
-    aGoToEditProject.Execute;
-  finally
-    FChangingTab := False;
-  end;
-end;
-
 procedure TFrmMain.GoToFinalQuestions;
 begin
   bShortieQuestions.IsPressed := False;
@@ -1367,6 +1425,11 @@ begin
   GoToHome;
 end;
 
+procedure TFrmMain.bSettingsClick(Sender: TObject);
+begin
+  GoToSettings;
+end;
+
 procedure TFrmMain.bShortieQuestionsClick(Sender: TObject);
 begin
   if FChangingTab then
@@ -1375,6 +1438,18 @@ begin
   LogEnter(Self, 'bShortieQuestionsClick');
   GoToShortieQuestions;
   LogExit(Self, 'bShortieQuestionsClick');
+end;
+
+procedure TFrmMain.GoToSettings;
+begin
+  FChangingTab := True;
+  try
+    eSettingsGamePath.Text := TAppConfig.GetInstance.FibbagePath;
+
+    aGoToSettings.Execute;
+  finally
+    FChangingTab := False;
+  end;
 end;
 
 procedure TFrmMain.GoToShortieQuestions;

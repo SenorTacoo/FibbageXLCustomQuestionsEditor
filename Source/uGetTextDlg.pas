@@ -18,7 +18,7 @@ type
       Shift: TShiftState);
   private
   public
-    function GetText(const AInfo: string; out AText: string): Boolean;
+    function GetText(const AInfo: string; var AText: string): Boolean;
   end;
 
 implementation
@@ -42,11 +42,13 @@ begin
   StyleBook := Application.MainForm.StyleBook;
 end;
 
-function TGetTextDlg.GetText(const AInfo: string; out AText: string): Boolean;
+function TGetTextDlg.GetText(const AInfo: string; var AText: string): Boolean;
 begin
   Result := False;
   Caption := AInfo;
   eText.SetFocus;
+  eText.Text := AText.Trim;
+  eText.SelectAll;
   if ShowModal = mrOk then
   begin
     Result := True;
