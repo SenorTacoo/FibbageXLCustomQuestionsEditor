@@ -6,6 +6,7 @@ uses
   System.IOUtils,
   System.SysUtils,
   System.Threading,
+  System.Classes,
   uQuestionsLoader,
   uCategoriesLoader,
   uInterfaces;
@@ -13,12 +14,10 @@ uses
 type
   TFibbageContent = class(TInterfacedObject, IFibbageContent)
   private
-    FContentPath: string;
+    FProjectPath: string;
     FCategories: IFibbageCategories;
     FQuestionsLoader: IQuestionsLoader;
-
-    procedure PrepareNewQuestion(out AQuestion: IQuestion; out ACategory: ICategory);
-    function GetAvailableId: Word;
+    procedure SaveManifest(const APath: string);
   public
     constructor Create(ACategories: IFibbageCategories; AQuestionsLoader: IQuestionsLoader);
 
@@ -26,7 +25,9 @@ type
     function Categories: IFibbageCategories;
     function GetPath: string;
 
-    procedure Initialize(const AContentPath: string; AOnContentInitialized: TOnContentInitialized; AOnContentError: TOnContentError);
+    procedure Initialize(AConfiguration: IContentConfiguration; AOnContentInitialized: TOnContentInitialized; AOnContentError: TOnContentError);
+    procedure InitializeEmpty(AOnContentInitialized: TOnContentInitialized; AOnContentError: TOnContentError);
+
     procedure Save(const APath: string);
 
     procedure AddShortieQuestion;
@@ -75,43 +76,40 @@ begin
   FQuestionsLoader := AQuestionsLoader;
 end;
 
-procedure TFibbageContent.PrepareNewQuestion(out AQuestion: IQuestion; out ACategory: ICategory);
-begin
-  AQuestion := TQuestionItem.Create;
-  AQuestion.SetId(FCategories.GetAvailableId);
-  ACategory := TCategoryData.Create;
-  ACategory.SetId(AQuestion.GetId);
-end;
-
-function TFibbageContent.GetAvailableId: Word;
-begin
-  Result := Random(High(Word) - 1000) + 1000;
-
-end;
-
 function TFibbageContent.GetPath: string;
 begin
-  Result := FContentPath;
+  Result := FProjectPath;
 end;
 
-procedure TFibbageContent.Initialize(const AContentPath: string;
+procedure TFibbageContent.Initialize(AConfiguration: IContentConfiguration;
   AOnContentInitialized: TOnContentInitialized; AOnContentError: TOnContentError);
 begin
-  FContentPath := AContentPath;
+  FProjectPath := AConfiguration.GetPath;
   TTask.Create(
-  procedure
-  begin
-    try
-      FCategories.LoadCategories(FContentPath);
-      FQuestionsLoader.LoadQuestions(FContentPath);
-      if Assigned(AOnContentInitialized) then
-        AOnContentInitialized;
-    except
-      on E: Exception do
-        if Assigned(AOnContentError) then
-          AOnContentError(E.Message);
-    end;
-  end).Start;
+    procedure
+    begin
+      try
+        FCategories.LoadCategories(FProjectPath);
+        FQuestionsLoader.LoadQuestions(FProjectPath);
+
+        if Assigned(AOnContentInitialized) then
+          AOnContentInitialized;
+      except
+        on E: Exception do
+          if Assigned(AOnContentError) then
+            AOnContentError(E.Message);
+      end;
+    end).Start;
+end;
+
+procedure TFibbageContent.InitializeEmpty(AOnContentInitialized: TOnContentInitialized;
+  AOnContentError: TOnContentError);
+begin
+//  FCategories.LoadCategories(FContentPath); // initialize empty
+//  FQuestionsLoader.LoadQuestions(FContentPath);
+//  FConfig.Initialize(FProjectPath);
+  if Assigned(AOnContentInitialized) then
+    AOnContentInitialized;
 end;
 
 function TFibbageContent.Questions: IFibbageQuestions;
@@ -133,7 +131,21 @@ end;
 
 procedure TFibbageContent.Save(const APath: string);
 begin
-  FQuestionsLoader.Questions.Save(TPath.Combine(APath, 'content'));
+  FQuestionsLoader.Questions.Save(APath);
+  FCategories.Save(APath);
+  SaveManifest(APath);
+end;
+
+procedure TFibbageContent.SaveManifest(const APath: string);
+begin
+  var fs := TFileStream.Create(TPath.Combine(APath, 'manifest.jet'), fmCreate);
+  var sw := TStreamWriter.Create(fs);
+  try
+    sw.WriteLine('{ "id":"Main", "name":"Main Content Pack", "types":["fibbageshortie","finalfibbage"] }');
+  finally
+    sw.Free;
+    fs.Free;
+  end;
 end;
 
 end.

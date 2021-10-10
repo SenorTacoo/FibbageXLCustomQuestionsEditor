@@ -14,7 +14,9 @@ uses
   uRecordForm in 'uRecordForm.pas' {RecordForm},
   uLastQuestionsLoader in 'uLastQuestionsLoader.pas',
   uConsts in 'uConsts.pas',
-  uLog in 'uLog.pas';
+  uLog in 'uLog.pas',
+  uGetTextDlg in 'uGetTextDlg.pas' {GetTextDlg},
+  uContentConfiguration in 'uContentConfiguration.pas';
 
 {$R *.res}
 

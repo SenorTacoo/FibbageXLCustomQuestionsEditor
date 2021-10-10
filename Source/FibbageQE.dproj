@@ -157,6 +157,11 @@
         <DCCReference Include="uLastQuestionsLoader.pas"/>
         <DCCReference Include="uConsts.pas"/>
         <DCCReference Include="uLog.pas"/>
+        <DCCReference Include="uGetTextDlg.pas">
+            <Form>GetTextDlg</Form>
+            <FormType>fmx</FormType>
+        </DCCReference>
+        <DCCReference Include="uContentConfiguration.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

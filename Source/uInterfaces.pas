@@ -28,6 +28,7 @@ type
     function Category(AIdx: Integer): ICategory;
     procedure Add(ACategory: ICategory);
     procedure Delete(AId: Integer);
+    procedure Save(const APath, AName: string);
   end;
 
   IFibbageCategories = interface
@@ -40,6 +41,7 @@ type
     function CreateNewFinalCategory: Integer;
     procedure RemoveShortieCategory(AQuestion: IQuestion);
     procedure RemoveFinalCategory(AQuestion: IQuestion);
+    procedure Save(const APath: string);
   end;
 
   TQuestionType = (qtShortie, qtFinal);
@@ -69,10 +71,12 @@ type
     procedure Save(const APath: string);
   end;
 
+  TQuestionList = TList<IQuestion>;
+
   IFibbageQuestions = interface
     ['{E703044F-3534-4F18-892D-99D381446C1C}']
-    function ShortieQuestions: TList<IQuestion>;
-    function FinalQuestions: TList<IQuestion>;
+    function ShortieQuestions: TQuestionList;
+    function FinalQuestions: TQuestionList;
     procedure Save(const APath: string);
     procedure RemoveShortieQuestion(AQuestion: IQuestion);
     procedure RemoveFinalQuestion(AQuestion: IQuestion);
@@ -84,6 +88,18 @@ type
     function Questions: IFibbageQuestions;
   end;
 
+  IContentConfiguration = interface
+    ['{B756232F-2FC1-4BD9-8CDB-76D33AC44D4B}']
+    function Initialize(const APath: string): Boolean;
+    procedure Save;
+
+    procedure SetName(const AName: string);
+    procedure SetPath(const APath: string);
+
+    function GetName: string;
+    function GetPath: string;
+  end;
+
   TOnContentInitialized = procedure of object;
   TOnContentError = procedure(const AMsg: string) of object;
 
@@ -93,7 +109,9 @@ type
     function Categories: IFibbageCategories;
     function GetPath: string;
 
-    procedure Initialize(const AContentPath: string; AOnContentInitialized: TOnContentInitialized; AOnContentError: TOnContentError);
+    procedure Initialize(AConfiguration: IContentConfiguration; AOnContentInitialized: TOnContentInitialized; AOnContentError: TOnContentError);
+    procedure InitializeEmpty(AOnContentInitialized: TOnContentInitialized; AOnContentError: TOnContentError);
+
     procedure Save(const APath: string);
     procedure AddShortieQuestion;
     procedure AddFinalQuestion;
@@ -101,12 +119,19 @@ type
     procedure RemoveFinalQuestion(AQuestion: IQuestion);
   end;
 
+  TContentConfigurations = TList<IContentConfiguration>;
+
   ILastQuestionProjects = interface
     ['{3AC14137-BA00-4639-9CA3-07DA510AC191}']
     procedure Initialize;
-    procedure Add(AContent: IFibbageContent);
-    function GetAll: TStringList;
+    procedure Add(AContent: IContentConfiguration);
+    procedure Remove(AConfiguration: IContentConfiguration);
+    function GetAll: TContentConfigurations;
+    function Count: Integer;
+    procedure BeginUpdate;
+    procedure EndUpdate;
   end;
+
 
 implementation
 

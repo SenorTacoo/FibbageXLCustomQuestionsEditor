@@ -1,0 +1,78 @@
+object GetTextDlg: TGetTextDlg
+  Left = 0
+  Top = 0
+  BorderStyle = Single
+  ClientHeight = 110
+  ClientWidth = 444
+  Position = OwnerFormCenter
+  StyleBook = FrmMain.sbLightStyle
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop]
+  OnCreate = FormCreate
+  DesignerMasterStyle = 0
+  object eText: TEdit
+    Touch.InteractiveGestures = [LongTap, DoubleTap]
+    Align = Client
+    StyleLookup = 'editstyle'
+    TabOrder = 0
+    Margins.Left = 15.000000000000000000
+    Margins.Top = 10.000000000000000000
+    Margins.Right = 15.000000000000000000
+    Size.Width = 414.000000000000000000
+    Size.Height = 32.000000000000000000
+    Size.PlatformDefault = False
+    OnKeyDown = eTextKeyDown
+  end
+  object gplButtons: TGridPanelLayout
+    Align = Bottom
+    Margins.Top = 10.000000000000000000
+    Position.Y = 60.000000000000000000
+    Size.Width = 444.000000000000000000
+    Size.Height = 50.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 1
+    ColumnCollection = <
+      item
+        Value = 50.000000000000000000
+      end
+      item
+        Value = 50.000000000000000000
+      end>
+    ControlCollection = <
+      item
+        Column = 0
+        Control = bOk
+        Row = 0
+      end
+      item
+        Column = 1
+        Control = bCancel
+        Row = 0
+      end>
+    RowCollection = <
+      item
+        Value = 100.000000000000000000
+      end>
+    object bOk: TButton
+      Align = Top
+      ModalResult = 1
+      Size.Width = 222.000000000000000000
+      Size.Height = 50.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = 'savetoolbuttonmultiview'
+      TabOrder = 0
+      Text = 'Ok'
+    end
+    object bCancel: TButton
+      Align = Client
+      ModalResult = 2
+      Size.Width = 222.000000000000000000
+      Size.Height = 50.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = 'stoptoolbuttonmultiview'
+      TabOrder = 1
+      Text = 'Cancel'
+    end
+  end
+end

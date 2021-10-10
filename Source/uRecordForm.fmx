@@ -140,12 +140,12 @@ object RecordForm: TRecordForm
       end>
     ControlCollection = <
       item
-        Column = 1
+        Column = 0
         Control = bSaveRecordedAudio
         Row = 0
       end
       item
-        Column = 0
+        Column = 1
         Control = bGoBack
         Row = 0
       end>

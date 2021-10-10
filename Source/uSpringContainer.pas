@@ -9,6 +9,7 @@ uses
   uCategoriesLoader,
   uPathChecker,
   uLastQuestionsLoader,
+  uContentConfiguration,
   uFibbageContent;
 
 var
@@ -26,6 +27,7 @@ initialization
   GlobalContainer.RegisterType<IFibbageCategories, TFibbageCategories>;
   GlobalContainer.RegisterType<IFibbageContent, TFibbageContent>;
   GlobalContainer.RegisterType<ILastQuestionProjects, TLastQuestionsLoader>;
+  GlobalContainer.RegisterType<IContentConfiguration, TContentConfiguration>;
   GlobalContainer.Build;
 
 finalization

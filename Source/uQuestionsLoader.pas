@@ -81,16 +81,25 @@ type
     property Fields: TArray<TQuestionField> read FFields write FFields;
   end;
 
+//  TQuestionList = class(TList<IQuestion>)
+//
+//  end;
+
+  TQuestionListHelper = class helper for TQuestionList
+  public
+    procedure Save(const AProjectPath, AQuestionsDir: string);
+  end;
+
   TQuestions = class(TInterfacedObject, IFibbageQuestions)
    private
-    FShortieQuestions: TList<IQuestion>;
-    FFinalQuestions: TList<IQuestion>;
+    FShortieQuestions: TQuestionList;
+    FFinalQuestions: TQuestionList;
   public
     constructor Create;
     destructor Destroy; override;
 
-    function ShortieQuestions: TList<IQuestion>;
-    function FinalQuestions: TList<IQuestion>;
+    function ShortieQuestions: TQuestionList;
+    function FinalQuestions: TQuestionList;
 
     procedure Save(const APath: string);
     procedure RemoveShortieQuestion(AQuestion: IQuestion);
@@ -149,6 +158,9 @@ end;
 procedure TQuestionsLoader.LoadShorties;
 begin
   var shortieDir := TDirectory.GetDirectories(FContentPath, '*fibbageshortie*');
+  if Length(shortieDir) = 0 then
+    Exit;
+
   FillQuestions(shortieDir[0], FQuestions.ShortieQuestions);
 
   for var item in FQuestions.ShortieQuestions do
@@ -158,6 +170,9 @@ end;
 procedure TQuestionsLoader.LoadFinals;
 begin
   var finalDirs := TDirectory.GetDirectories(FContentPath, '*finalfibbage*');
+  if Length(finalDirs) = 0 then
+    Exit;
+
   FillQuestions(finalDirs[0], FQuestions.FinalQuestions);
 
   for var item in FQuestions.FinalQuestions do
@@ -577,7 +592,7 @@ begin
   inherited;
 end;
 
-function TQuestions.FinalQuestions: TList<IQuestion>;
+function TQuestions.FinalQuestions: TQuestionList;
 begin
   Result := FFinalQuestions;
 end;
@@ -594,15 +609,11 @@ end;
 
 procedure TQuestions.Save(const APath: string);
 begin
-  var shortieDir := TPath.Combine(APath, 'fibbageshortie');
-  var finalDir := TPath.Combine(APath, 'finalfibbage');
-  for var question in ShortieQuestions do
-    question.Save(shortieDir);
-  for var question in FinalQuestions do
-    question.Save(finalDir);
+  ShortieQuestions.Save(APath, 'fibbageshortie');
+  FinalQuestions.Save(APath, 'finalfibbage');
 end;
 
-function TQuestions.ShortieQuestions: TList<IQuestion>;
+function TQuestions.ShortieQuestions: TQuestionList;
 begin
   Result := FShortieQuestions;
 end;
@@ -612,6 +623,16 @@ end;
 function TAudioItem.GetName: string;
 begin
   Result := ChangeFileExt(ExtractFileName(FPath), '');
+end;
+
+{ TQuestionListHelper }
+
+procedure TQuestionListHelper.Save(const AProjectPath, AQuestionsDir: string);
+begin
+  var targetDir := TPath.Combine(AProjectPath, AQuestionsDir);
+  ForceDirectories(targetDir);
+  for var question in Self do
+    question.Save(targetDir);
 end;
 
 end.

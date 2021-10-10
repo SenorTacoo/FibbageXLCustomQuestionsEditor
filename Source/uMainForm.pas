@@ -14,11 +14,15 @@ uses
   Data.Bind.ObjectScope, FMX.Platform, uQuestionsLoader, uSpringContainer, System.Math,
   FMX.Memo.Types, FMX.ScrollBox, FMX.Memo, FMX.Media,
   ACS_Classes, ACS_DXAudio, ACS_Vorbis, ACS_Converters, ACS_Wave,
-  NewACDSAudio, System.Generics.Collections, uRecordForm, FMX.ListBox,
-  FMX.Objects, System.Messaging, System.DateUtils, uLog, uCategoriesLoader,
-  FMX.Menus, System.StrUtils;
+  NewACDSAudio, System.Generics.Collections, uRecordForm, FMX.ListBox, 
+  System.Messaging, System.DateUtils, uLog, uCategoriesLoader,
+  FMX.Menus, System.StrUtils, uGetTextDlg, FMX.Objects, FMX.DialogService;
 
 type
+  TRemoveProjectOption = (rpoFullWipe);
+
+  TRemoveProjectOptions = set of TRemoveProjectOption;
+
   TQuestionScrollItem = class(TPanel)
   private
     FDetails: TLabel;
@@ -32,7 +36,7 @@ type
   public
     constructor CreateItem(AOwner: TComponent; AQuestion: IQuestion; ACategory: ICategory);
     procedure RefreshData;
-    
+
     property Selected: Boolean read FSelected write SetSelected;
     property OrgQuestion: IQuestion read FOrgQuestion;
     property OrgCategory: ICategory read FOrgCategory;
@@ -45,12 +49,40 @@ type
     function SelectedCount: Integer;
   end;
 
+  TProjectScrollItem = class(TPanel)
+  private
+    FName: TLabel;
+    FPath: TLabel;
+    FOrgConfiguration: IContentConfiguration;
+    FSelected: Boolean;
+    procedure SetSelected(const Value: Boolean);
+  protected
+    procedure Resize; override;
+  public
+    constructor CreateItem(AOwner: TComponent; AConfiguration: IContentConfiguration);
+
+    procedure RefreshData;
+
+    property Selected: Boolean read FSelected write SetSelected;
+    property OrgConfiguration: IContentConfiguration read FOrgConfiguration;
+  end;
+
+  TProjectScrollItems = class(TList<TProjectScrollItem>)
+  private
+    FOwnerScroll: TCustomScrollBox;
+  public
+    constructor Create(AOwner: TCustomScrollBox);
+
+    procedure ClearSelection;
+    procedure SelectAll;
+    function SelectedCount: Integer;
+  end;
+
   TAppTab = (atHomeBeforeImport, atHome, atQuestions, atSingleQuestion);
 
   TFrmMain = class(TForm)
-    mvOptions: TMultiView;
+    mvHomeOptions: TMultiView;
     bMenu: TButton;
-    bExportQuestions: TButton;
     bImportQuestions: TButton;
     alMain: TActionList;
     ToolBar1: TToolBar;
@@ -114,26 +146,22 @@ type
     sbLightStyle: TStyleBook;
     sbDarkStyle: TStyleBook;
     tiQuestionProjects: TTabItem;
-    lvQuestionProjects: TListView;
-    bHomeButton: TButton;
     aGoToHome: TChangeTabAction;
     bQuestions: TButton;
     sbxShortieQuestions: TVertScrollBox;
     pBackground: TPanel;
     sbxFinalQuestions: TVertScrollBox;
     tbQuestionProjects: TToolBar;
-    lOpenRecentProjects: TLabel;
+    lProjects: TLabel;
     ToolBar2: TToolBar;
-    Label1: TLabel;
+    lProjectQuestions: TLabel;
     ToolBar3: TToolBar;
     Label2: TLabel;
     GridPanelLayout2: TGridPanelLayout;
     bShortieQuestions: TButton;
     bFinalQuestions: TButton;
-    bAddQuestion: TButton;
-    bRemoveQuestions: TButton;
+    bNewProject: TButton;
     lineTabs: TLine;
-    lineActions: TLine;
     pmQuestions: TPopupMenu;
     miAddQuestion: TMenuItem;
     miEditQuestion: TMenuItem;
@@ -141,21 +169,58 @@ type
     aRemoveQuestions: TAction;
     aAddQuestion: TAction;
     aEditQuestion: TAction;
-    procedure sDarkModeSwitch(Sender: TObject);
+    lyProjectsContent: TLayout;
+    lyQuestionsContent: TLayout;
+    mvQuestionsOptions: TMultiView;
+    bQuestionsMenu: TButton;
+    bSaveQuestions: TButton;
+    Layout1: TLayout;
+    sDarkModeOptions: TSwitch;
+    lDarkModeOptions: TLabel;
+    bGoToHome: TButton;
+    bAddQuestion: TButton;
+    bRemoveQuestions: TButton;
+    Line1: TLine;
+    Line2: TLine;
+    aNewProject: TAction;
+    aSaveProject: TAction;
+    aImportProject: TAction;
+    bRemoveProjects: TButton;
+    aRemoveProjects: TAction;
+    Line3: TLine;
+    sbxProjects: TVertScrollBox;
+    aInitializeProject: TAction;
+    pmProjects: TPopupMenu;
+    miAddProject: TMenuItem;
+    miEditProjectDetails: TMenuItem;
+    miRemoveProject: TMenuItem;
+    miImportProject: TMenuItem;
+    aEditProjectDetails: TAction;
+    miAddSeparator: TMenuItem;
+    miEditSeparator: TMenuItem;
+    aRemoveProjectsAllData: TAction;
+    aRemoveProjectsJustLastInfo: TAction;
+    tiEditProject: TTabItem;
+    ToolBar4: TToolBar;
+    lEditProject: TLabel;
+    bGoBackFromEditProject: TButton;
+    lyEditProjectName: TLayout;
+    eProjectName: TEdit;
+    lEditProjectName: TLabel;
+    lyEditProjectContent: TLayout;
+    aGoToEditProject: TChangeTabAction;
+    miEditProjectQuestions: TMenuItem;
+    bSaveQuestionsAs: TButton;
+    aSaveProjectAs: TAction;
     procedure lDarkModeClick(Sender: TObject);
-    procedure ToolBar1MouseMove(Sender: TObject; Shift: TShiftState; X,
-      Y: Single);
     procedure FormCreate(Sender: TObject);
     procedure FormResize(Sender: TObject);
-    procedure bImportQuestionsClick(Sender: TObject);
-    procedure bExportQuestionsClick(Sender: TObject);
     procedure lvEditAllItemsUpdateObjects(const Sender: TObject;
       const AItem: TListViewItem);
     procedure bSingleItemQuestionAudioClick(Sender: TObject);
     procedure bSingleItemCorrectAudioClick(Sender: TObject);
     procedure bSingleItemBumperAudioClick(Sender: TObject);
     procedure bGoBackFromDetailsClick(Sender: TObject);
-    procedure lvQuestionProjectsDblClick(Sender: TObject);
     procedure bHomeButtonClick(Sender: TObject);
     procedure bQuestionsClick(Sender: TObject);
     procedure bShortieQuestionsClick(Sender: TObject);
@@ -167,6 +232,21 @@ type
     procedure aAddQuestionExecute(Sender: TObject);
     procedure aEditQuestionExecute(Sender: TObject);
     procedure pmQuestionsPopup(Sender: TObject);
+    procedure aNewProjectExecute(Sender: TObject);
+    procedure aSaveProjectExecute(Sender: TObject);
+    procedure aImportProjectExecute(Sender: TObject);
+    procedure bGoToHomeClick(Sender: TObject);
+    procedure lDarkModeOptionsClick(Sender: TObject);
+    procedure sDarkModeOptionsSwitch(Sender: TObject);
+    procedure sDarkModeSwitch(Sender: TObject);
+    procedure aRemoveProjectsExecute(Sender: TObject);
+    procedure aInitializeProjectExecute(Sender: TObject);
+    procedure aEditProjectDetailsExecute(Sender: TObject);
+    procedure pmProjectsPopup(Sender: TObject);
+    procedure aRemoveProjectsAllDataExecute(Sender: TObject);
+    procedure aRemoveProjectsJustLastInfoExecute(Sender: TObject);
+    procedure bGoBackFromEditProjectClick(Sender: TObject);
+    procedure aSaveProjectAsExecute(Sender: TObject);
   private
     FAppCreated: Boolean;
     FChangingTab: Boolean;
@@ -174,27 +254,35 @@ type
 
     FSelectedQuestion: IQuestion;
     FSelectedCategory: ICategory;
+    FSelectedConfiguration: IContentConfiguration;
 
     FLastQuestionProjects: ILastQuestionProjects;
 
     FLastClickedItem: TQuestionScrollItem;
     FLastClickedItemToEdit: TQuestionScrollItem;
 
+    FLastClickedConfiguration: TProjectScrollItem;
+    FLastClickedConfigurationToEdit: TProjectScrollItem;
+
     FShortieVisItems: TQuestionScrollItems;
     FFinalVisItems: TQuestionScrollItems;
+
+    FProjectVisItems: TProjectScrollItems;
 
     procedure OnContentInitialized;
     procedure OnContentError(const AError: string);
     procedure GoToQuestionDetails;
     procedure AddLastChoosenProject;
     procedure InitializeLastQuestionProjects;
-    procedure InitializeContent(const APath: string);
     procedure GoToFinalQuestions;
     procedure GoToShortieQuestions;
     procedure GoToAllQuestions;
     procedure GoToHome;
+    procedure GoToEditProject;
 
     procedure PrepareMultiViewButtons(AActTab: TAppTab);
+    procedure OnProjectItemDoubleClick(Sender: TObject);
+    procedure OnProjectItemMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
     procedure OnShortieQuestionItemDoubleClick(Sender: TObject);
     procedure OnFinalQuestionItemDoubleClick(Sender: TObject);
     procedure OnShortieQuestionItemMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
@@ -207,6 +295,13 @@ type
     procedure RefreshSelectedShortieQuestion;
     procedure CreateNewFinalQuestion;
     procedure CreateNewShortieQuestion;
+    procedure SetDarkMode(AEnabled: Boolean);
+    procedure PostInitializeContent;
+    function GetProjectName(out AName: string): Boolean;
+    function GetProjectPath(out APath: string): Boolean;
+    procedure ProcessRemoveSelectedProjects(AOptions: TRemoveProjectOptions = []);
+    procedure ProcessInitializeProject;
+    procedure ClearPreviousData;
   public
     { Public declarations }
   end;
@@ -230,7 +325,21 @@ end;
 
 procedure TFrmMain.AddLastChoosenProject;
 begin
-  FLastQuestionProjects.Add(FContent);
+  FLastQuestionProjects.BeginUpdate;
+  try
+    FLastQuestionProjects.Add(FSelectedConfiguration);
+  finally
+    FLastQuestionProjects.EndUpdate;
+  end;
+end;
+
+procedure TFrmMain.aEditProjectDetailsExecute(Sender: TObject);
+begin
+  if not Assigned(FLastClickedConfiguration) then
+    Exit;
+
+  eProjectName.Text := FLastClickedConfiguration.OrgConfiguration.GetName;
+  GoToEditProject;
 end;
 
 procedure TFrmMain.aEditQuestionExecute(Sender: TObject);
@@ -245,6 +354,187 @@ begin
   GoToQuestionDetails;
 end;
 
+procedure TFrmMain.aImportProjectExecute(Sender: TObject);
+var
+  str: string;
+begin
+  var pathChecker := GlobalContainer.Resolve<IFibbagePathChecker>;
+  var cfg := GlobalContainer.Resolve<IContentConfiguration>;
+  while True do
+    if not GetProjectPath(str) then
+      Exit
+    else if pathChecker.IsValid(str) then
+      Break
+    else
+      ShowMessage('Invalid path, question directories not found');
+
+  if not cfg.Initialize(str) then
+  begin
+    cfg.SetPath(str);
+    if not GetProjectName(str) then
+      Exit;
+    cfg.SetName(str);
+    cfg.Save;
+  end;
+
+  sbxProjects.BeginUpdate;
+  try
+    FProjectVisItems.ClearSelection;
+    var pItem := TProjectScrollItem.CreateItem(sbxProjects, cfg);
+    pItem.Parent := sbxProjects;
+    pItem.Align := TAlignLayout.Top;
+    pItem.Position.Y := -999;
+    pItem.OnMouseDown := OnProjectItemMouseDown;
+    pItem.OnDblClick := OnProjectItemDoubleClick;
+    FLastClickedConfigurationToEdit := pItem;
+    FProjectVisItems.Add(pItem);
+    pItem.Selected := True;
+  finally
+    sbxProjects.EndUpdate;
+  end;
+
+  aInitializeProject.Execute;
+end;
+
+procedure TFrmMain.aInitializeProjectExecute(Sender: TObject);
+begin
+  if Assigned(FContent) then
+  begin
+    TDialogService.MessageDialog('Are you sure you want to close currently open project?', TMsgDlgType.mtInformation,
+      [TMsgDlgBtn.mbYes, TMsgDlgBtn.mbNo, TMsgDlgBtn.mbCancel], TMsgDlgBtn.mbNo, 0,
+      procedure (const AResult: TModalResult)
+      begin
+        if AResult = mrYes then // moze save
+          ProcessInitializeProject;
+      end);
+  end
+  else
+    ProcessInitializeProject;
+end;
+
+procedure TFrmMain.ProcessInitializeProject;
+begin
+  FSelectedConfiguration := nil;
+  for var item in FProjectVisItems do
+    if item.Selected then
+    begin
+      FSelectedConfiguration := item.OrgConfiguration;
+      Break;
+    end;
+
+  if not Assigned(FSelectedConfiguration) then
+  begin
+    LogE('ProcessInitializeProject selected configuration not assigned, selected count: %d/%d', [FProjectVisItems.SelectedCount, FProjectVisItems.Count]);
+    Exit;
+  end;
+  ClearPreviousData;
+  TAppConfig.GetInstance.LastEditPath := FSelectedConfiguration.GetPath;
+  FContent := GlobalContainer.Resolve<IFibbageContent>;
+  FContent.Initialize(FSelectedConfiguration, OnContentInitialized, OnContentError);
+  PostInitializeContent;
+end;
+
+procedure TFrmMain.ClearPreviousData;
+begin
+  sbxShortieQuestions.BeginUpdate;
+  try
+    while FShortieVisItems.Count > 0 do
+    begin
+      var item := FShortieVisItems.ExtractAt(0);
+      FreeAndNil(item);
+    end;
+  finally
+    sbxShortieQuestions.EndUpdate;
+  end;
+
+  sbxFinalQuestions.BeginUpdate;
+  try
+    while FFinalVisItems.Count > 0 do
+    begin
+      var item := FFinalVisItems.ExtractAt(0);
+      FreeAndNil(item);
+    end;
+  finally
+    sbxFinalQuestions.EndUpdate;
+  end;
+end;
+
+procedure TFrmMain.aNewProjectExecute(Sender: TObject);
+var
+  str: string;
+begin
+  var cfg := GlobalContainer.Resolve<IContentConfiguration>;
+  if not GetProjectName(str) then
+    Exit;
+  cfg.SetName(str);
+  if not GetProjectPath(str) then
+    Exit;
+  cfg.SetPath(str);
+  cfg.Save;
+
+  sbxProjects.BeginUpdate;
+  try
+    FProjectVisItems.ClearSelection;
+    var pItem := TProjectScrollItem.CreateItem(sbxProjects, cfg);
+    pItem.Parent := sbxProjects;
+    pItem.Align := TAlignLayout.Top;
+    pItem.Position.Y := -999;
+    pItem.OnMouseDown := OnProjectItemMouseDown;
+    pItem.OnDblClick := OnProjectItemDoubleClick;
+    FLastClickedConfigurationToEdit := pItem;
+    FProjectVisItems.Add(pItem);
+    pItem.Selected := True;
+  finally
+    sbxProjects.EndUpdate;
+  end;
+
+  aInitializeProject.Execute;
+end;
+
+procedure TFrmMain.ProcessRemoveSelectedProjects(AOptions: TRemoveProjectOptions = []);
+begin
+  sbxProjects.BeginUpdate;
+  FLastQuestionProjects.BeginUpdate;
+  try
+    for var idx := FProjectVisItems.Count - 1 downto 0 do
+    begin
+      if not FProjectVisItems[idx].Selected then
+        Continue;
+      var item := FProjectVisItems.ExtractAt(idx);
+      if rpoFullWipe in AOptions then
+        TDirectory.Delete(item.OrgConfiguration.GetPath, True);
+      FLastQuestionProjects.Remove(item.OrgConfiguration);
+      FreeAndNil(item);
+    end;
+  finally
+    FLastQuestionProjects.EndUpdate;
+    sbxProjects.EndUpdate;
+  end;
+end;
+
+procedure TFrmMain.aRemoveProjectsAllDataExecute(Sender: TObject);
+begin
+  ProcessRemoveSelectedProjects([rpoFullWipe]);
+end;
+
+procedure TFrmMain.aRemoveProjectsExecute(Sender: TObject);
+begin
+  TDialogService.MessageDialog('Do you also want to remove questions?',
+    TMsgDlgType.mtConfirmation, [TMsgDlgBtn.mbYes, TMsgDlgBtn.mbNo], TMsgDlgBtn.mbNo, 0,
+    procedure(const AResult: TModalResult)
+    begin
+      if AResult = mrYes then
+        aRemoveProjectsAllData.Execute
+      else
+        aRemoveProjectsJustLastInfo.Execute;
+    end);
+end;
+
+procedure TFrmMain.aRemoveProjectsJustLastInfoExecute(Sender: TObject);
+begin
+  ProcessRemoveSelectedProjects;
+end;
+
 procedure TFrmMain.aRemoveQuestionsExecute(Sender: TObject);
 begin
   if tcQuestions.ActiveTab = tiShortieQuestions then
@@ -253,40 +543,19 @@ begin
     RemoveSelectedFinalQuestions;
 end;
 
-procedure TFrmMain.bImportQuestionsClick(Sender: TObject);
+procedure TFrmMain.aSaveProjectAsExecute(Sender: TObject);
 var
-  rootDir: string;
-  gameDir: string;
+  path: string;
 begin
-  var pathChecker := GlobalContainer.Resolve<IFibbagePathChecker>;
-  if (not TAppConfig.GetInstance.LastEditPath.IsEmpty) and pathChecker.IsValid(TAppConfig.GetInstance.LastEditPath) then
-    rootDir := TAppConfig.GetInstance.LastEditPath
-  else
-  begin
-    rootDir :=
-      IncludeTrailingPathDelimiter(GetEnvironmentVariable('programfiles')) +
-      IncludeTrailingPathDelimiter('Steam') +
-      IncludeTrailingPathDelimiter('steamapps') +
-      IncludeTrailingPathDelimiter('common') +
-      IncludeTrailingPathDelimiter('Fibbage XL');
-    if not pathChecker.IsValid(rootDir) then
-      rootDir := GetCurrentDir;
-  end;
+  if not GetProjectPath(path) then
+    Exit;
 
-  while True do
-  begin
-    if not SelectDirectory('Select "Content" directory', rootDir, gameDir) then
-      Exit
-    else if pathChecker.IsValid(gameDir) then
-      Break
-    else
-    begin
-      rootDir := gameDir;
-      ShowMessage('Question directories not found');
-    end;
-  end;
+  FContent.Save(path);
+end;
 
-  InitializeContent(gameDir);
+procedure TFrmMain.aSaveProjectExecute(Sender: TObject);
+begin
+  FContent.Save(FContent.GetPath);
 end;
 
 procedure TFrmMain.bQuestionsClick(Sender: TObject);
@@ -311,6 +580,16 @@ begin
   end;
 end;
 
+procedure TFrmMain.sDarkModeOptionsSwitch(Sender: TObject);
+begin
+  SetDarkMode(sDarkModeOptions.IsChecked);
+end;
+
+procedure TFrmMain.sDarkModeSwitch(Sender: TObject);
+begin
+  SetDarkMode(sDarkMode.IsChecked);
+end;
+
 procedure TFrmMain.RemoveSelectedFinalQuestions;
 begin
   sbxFinalQuestions.BeginUpdate;
@@ -328,15 +607,27 @@ begin
   end;
 end;
 
-procedure TFrmMain.InitializeContent(const APath: string);
+function TFrmMain.GetProjectPath(out APath: string): Boolean;
 begin
-  TAppConfig.GetInstance.LastEditPath := APath;
-  FContent := GlobalContainer.Resolve<IFibbageContent>;
-  FContent.Initialize(APath, OnContentInitialized, OnContentError);
+  Result := SelectDirectory('Select directory', '', APath);
+end;
+
+function TFrmMain.GetProjectName(out AName: string): Boolean;
+begin
+  var dlg := TGetTextDlg.Create(Self);
+  try
+    Result := dlg.GetText('Enter new project name:', AName);
+  finally
+    dlg.Free;
+  end;
+end;
+
+procedure TFrmMain.PostInitializeContent;
+begin
   tcEditTabs.Visible := False;
   aiContentLoading.Visible := True;
   aiContentLoading.Enabled := True;
-  mvOptions.HideMaster;
+  mvHomeOptions.HideMaster;
 end;
 
 procedure TFrmMain.OnContentError(const AError: string);
@@ -438,6 +729,85 @@ begin
   aRemoveQuestions.Text := IfThen(selCnt > 1, 'Remove questions', 'Remove question');
 end;
 
+procedure TFrmMain.OnProjectItemDoubleClick(Sender: TObject);
+begin
+  Log('OnProjectItemDoubleClick');
+  if FChangingTab then
+    Exit;
+
+  aInitializeProject.Execute;
+end;
+
+procedure TFrmMain.OnProjectItemMouseDown(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Single);
+begin
+  if FChangingTab then
+    Exit;
+  if not (Sender is TProjectScrollItem) then
+    Exit;
+
+  FLastClickedConfigurationToEdit := Sender as TProjectScrollItem;
+
+  if Button = TMouseButton.mbRight then
+  begin
+    FLastClickedConfiguration := Sender as TProjectScrollItem;
+    sbxProjects.BeginUpdate;
+    try
+      if not (Sender as TProjectScrollItem).Selected then
+      begin
+        FProjectVisItems.ClearSelection;
+        (Sender as TProjectScrollItem).Selected := True;
+      end;
+    finally
+      sbxProjects.EndUpdate;
+    end;
+    pmProjects.Popup(Screen.MousePos.X, Screen.MousePos.Y);
+  end
+  else if ssDouble in Shift then
+  begin
+    FProjectVisItems.ClearSelection;
+    (Sender as TProjectScrollItem).Selected := True;
+  end
+  else if ssShift in Shift then
+  begin
+    var fIdx := 0;
+    var sIdx := FProjectVisItems.IndexOf(Sender as TProjectScrollItem);
+    if Assigned(FLastClickedConfiguration) then
+      fIdx := FProjectVisItems.IndexOf(FLastClickedConfiguration);
+
+    if fIdx > sIdx then
+    begin
+      var tmp := fIdx;
+      fIdx := sIdx;
+      sIdx := tmp;
+    end;
+
+    for var idx := 0 to FProjectVisItems.Count - 1 do
+      FProjectVisItems[idx].Selected := (idx >= fIdx) and (idx <= sIdx);
+  end
+  else
+  begin
+    FLastClickedConfiguration := Sender as TProjectScrollItem;
+    if ssCtrl in Shift then
+      (Sender as TProjectScrollItem).Selected := not (Sender as TProjectScrollItem).Selected
+    else
+    begin
+      for var item in FProjectVisItems do
+        if item = Sender then
+          item.Selected := not item.Selected
+        else
+          item.Selected := False;
+    end;
+  end;
+
+  if not (Sender as TProjectScrollItem).Selected then
+    FLastClickedConfigurationToEdit := nil;
+
+  var selCnt := FProjectVisItems.SelectedCount;
+  aRemoveProjects.Enabled :=  selCnt > 0;
+  aRemoveProjects.Text := IfThen(selCnt > 1, 'Remove projects', 'Remove project');
+end;
+
 procedure TFrmMain.OnShortieQuestionItemMouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Single);
 begin
@@ -511,29 +881,11 @@ end;
 
 procedure TFrmMain.PrepareMultiViewButtons(AActTab: TAppTab);
 begin
-  mvOptions.BeginUpdate;
+  mvHomeOptions.BeginUpdate;
   try
-    bHomeButton.Visible := AActTab <> atSingleQuestion;
-    bHomeButton.Enabled := (AActTab <> atHomeBeforeImport) and (AActTab <> atHome);
-    bQuestions.Visible := (AActTab <> atHomeBeforeImport) and (AActTab <> atSingleQuestion);
-    bQuestions.Enabled := AActTab <> atQuestions;
-    bImportQuestions.Visible := (AActTab = atHome) or (AActTab = atHomeBeforeImport);
-    bExportQuestions.Visible := AActTab = atQuestions;
-    bAddQuestion.Visible := AActTab = atQuestions;
-    bRemoveQuestions.Visible := AActTab = atQuestions;
-    lineTabs.Visible := bImportQuestions.Visible or bExportQuestions.Visible;
-    lineActions.Visible := bAddQuestion.Visible or bRemoveQuestions.Visible;
-    
-    bHomeButton.Position.Y := bMenu.Position.Y + bMenu.Height;
-    bQuestions.Position.Y := bHomeButton.Position.Y + bHomeButton.Height;
-    lineTabs.Position.Y := bQuestions.Position.Y + bQuestions.Height;
-    bImportQuestions.Position.Y := lineTabs.Position.Y + lineTabs.Height;
-    bExportQuestions.Position.Y := bImportQuestions.Position.Y + bImportQuestions.Height;
-    lineActions.Position.Y := bExportQuestions.Position.Y + bExportQuestions.Height;
-    bAddQuestion.Position.Y := lineActions.Position.Y + lineActions.Height;
-    bRemoveQuestions.Position.Y := bAddQuestion.Position.Y + bAddQuestion.Height;
+    bQuestions.Enabled := AActTab <> atHomeBeforeImport;
   finally
-    mvOptions.EndUpdate;
+    mvHomeOptions.EndUpdate;
   end;
 end;
 
@@ -591,13 +943,24 @@ begin
         tcEditTabs.Visible := True;
         FLastClickedItemToEdit := nil;
         aRemoveQuestions.Enabled := False;
+        lProjectQuestions.Text := Format('Questions - %s', [FSelectedConfiguration.GetName]);
       end;
     end);
 end;
 
-procedure TFrmMain.pmQuestionsPopup(Sender: TObject);
+procedure TFrmMain.pmProjectsPopup(Sender: TObject);
 begin
-  var selCnt := 0;
+  var selCnt := FProjectVisItems.SelectedCount;
+
+  aRemoveProjects.Text := IfThen(selCnt > 1, 'Remove projects', 'Remove project');
+  aRemoveProjects.Enabled := selCnt > 0;
+  aEditProjectDetails.Enabled := Assigned(FLastClickedConfigurationToEdit) and (selCnt = 1);
+end;
+
+procedure TFrmMain.pmQuestionsPopup(Sender: TObject);
+var
+  selCnt: Integer;
+begin
   if tcQuestions.ActiveTab = tiShortieQuestions then
     selCnt := FShortieVisItems.SelectedCount
   else
@@ -651,20 +1014,6 @@ begin
   end;
 end;
 
-procedure TFrmMain.bExportQuestionsClick(Sender: TObject);
-begin
-  var rootDir := TAppConfig.GetInstance.LastEditPath;
-  var gameDir: string;
-  while True do
-  begin
-    if not SelectDirectory('Select directory where you want to store questions', rootDir, gameDir) then
-      Exit;
-    Break;
-  end;
-
-  FContent.Save(gameDir);
-end;
-
 procedure TFrmMain.bFinalQuestionsClick(Sender: TObject);
 begin
   LogEnter(Self, 'bShortieQuestionsClick');
@@ -681,6 +1030,16 @@ begin
     FChangingTab := False;
   end;
   PrepareMultiViewButtons(atQuestions);
+end;
+
+procedure TFrmMain.GoToEditProject;
+begin
+  FChangingTab := True;
+  try
+    aGoToEditProject.Execute;
+  finally
+    FChangingTab := False;
+  end;
 end;
 
 procedure TFrmMain.GoToFinalQuestions;
@@ -733,6 +1092,22 @@ begin
     RefreshSelectedFinalQuestion;
 
   GoToAllQuestions;
+end;
+
+procedure TFrmMain.bGoBackFromEditProjectClick(Sender: TObject);
+begin
+  var doSave := eProjectName.Text <> FLastClickedConfiguration.OrgConfiguration.GetName;
+
+  FLastClickedConfiguration.OrgConfiguration.SetName(eProjectName.Text);
+  FLastClickedConfiguration.RefreshData;
+  if doSave then
+    FLastClickedConfiguration.OrgConfiguration.Save;
+  GoToHome;
+end;
+
+procedure TFrmMain.bGoToHomeClick(Sender: TObject);
+begin
+  GoToHome;
 end;
 
 procedure TFrmMain.RefreshSelectedShortieQuestion;
@@ -835,6 +1210,8 @@ begin
 
   PrepareMultiViewButtons(atHomeBeforeImport);
 
+  FProjectVisItems := TProjectScrollItems.Create(sbxProjects);
+
   FShortieVisItems := TQuestionScrollItems.Create;
   FFinalVisItems := TQuestionScrollItems.Create;
 
@@ -847,8 +1224,8 @@ begin
   FLastQuestionProjects.Initialize;
   InitializeLastQuestionProjects;
 
-  if lvQuestionProjects.Items.Count = 0 then
-    mvOptions.ShowMaster;
+  if FLastQuestionProjects.Count = 0 then
+    mvHomeOptions.ShowMaster;
 
   FAppCreated := True;
 end;
@@ -858,6 +1235,7 @@ begin
   Log('Destroying');
   FShortieVisItems.Free;
   FFinalVisItems.Free;
+  FProjectVisItems.Free;
   Log('Destroyed');
 end;
 
@@ -906,24 +1284,47 @@ end;
 
 procedure TFrmMain.InitializeLastQuestionProjects;
 begin
-  var paths := FLastQuestionProjects.GetAll;
+  var items := FLastQuestionProjects.GetAll;
+  sbxProjects.BeginUpdate;
   try
-    for var idx := 0 to paths.Count - 1 do
+    for var item in items do
     begin
-      var item := lvQuestionProjects.Items.Add;
-      item.Data['ProjectPath'] := paths[idx];
-      item.Data['ProjectName'] := 'Polskie pytania';
-      item.Data['QuestionsCount'] := 'Shorties: 100' + sLineBreak + 'Final: 100';
-
+      var pItem := TProjectScrollItem.CreateItem(sbxProjects, item);
+      pItem.Parent := sbxProjects;
+      pItem.Align := TAlignLayout.Top;
+      pItem.Position.Y := MaxInt;
+      pItem.OnMouseDown := OnProjectItemMouseDown;
+      pItem.OnDblClick := OnProjectItemDoubleClick;
+      FProjectVisItems.Add(pItem);
     end;
   finally
-    paths.Free;
+    items.Free;
+    sbxProjects.EndUpdate;
   end;
 end;
 
 procedure TFrmMain.lDarkModeClick(Sender: TObject);
 begin
   sDarkMode.IsChecked := not sDarkMode.IsChecked;
+end;
+
+procedure TFrmMain.lDarkModeOptionsClick(Sender: TObject);
+begin
+  sDarkModeOptions.IsChecked := not sDarkModeOptions.IsChecked;
+end;
+
+procedure TFrmMain.SetDarkMode(AEnabled: Boolean);
+begin
+  sDarkMode.IsChecked := AEnabled;
+  sDarkModeOptions.IsChecked := AEnabled;
+
+  if AEnabled then
+    StyleBook := sbDarkStyle
+  else
+    StyleBook := sbLightStyle;
+
+  if FAppCreated then
+    TAppConfig.GetInstance.DarkModeEnabled := AEnabled;
 end;
 
 procedure TFrmMain.lvEditAllItemsUpdateObjects(const Sender: TObject;
@@ -962,35 +1363,6 @@ begin
   cdDrawable.Width := baseLV.Width - cdDrawable.PlaceOffset.X;
 
   AItem.Height := Round(sDrawable.PlaceOffset.Y + sDrawable.Height + 6);
-end;
-
-procedure TFrmMain.lvQuestionProjectsDblClick(Sender: TObject);
-begin
-  var selectedItem := lvQuestionProjects.Items[lvQuestionProjects.ItemIndex];
-  var contentDir := selectedItem.Data['ProjectPath'].AsString;
-
-  var pathChecker := GlobalContainer.Resolve<IFibbagePathChecker>;
-  if not pathChecker.IsValid(contentDir) then
-    ShowMessage('Game content is not available at this path')
-  else
-    InitializeContent(contentDir);
-end;
-
-procedure TFrmMain.sDarkModeSwitch(Sender: TObject);
-begin
-  if sDarkMode.IsChecked then
-    StyleBook := sbDarkStyle
-  else
-    StyleBook := sbLightStyle;
-
-  if FAppCreated then
-    TAppConfig.GetInstance.DarkModeEnabled := sDarkMode.IsChecked;
-end;
-
-procedure TFrmMain.ToolBar1MouseMove(Sender: TObject; Shift: TShiftState; X,
-  Y: Single);
-begin
-
 end;
 
 { TQuestionScrollItem }
@@ -1073,6 +1445,102 @@ begin
 end;
 
 function TQuestionScrollItems.SelectedCount: Integer;
+begin
+  Result := 0;
+  for var item in Self do
+    if item.Selected then
+      Inc(Result);
+end;
+
+{ TProjectScrollItem }
+
+constructor TProjectScrollItem.CreateItem(AOwner: TComponent; AConfiguration: IContentConfiguration);
+begin
+  inherited Create(AOwner);
+
+  StyleLookup := 'rScrollItemStyle';
+  HitTest := True;
+
+  FOrgConfiguration := AConfiguration;
+
+  FName := TLabel.Create(AOwner);
+  FName.Parent := Self;
+  FName.Align := TAlignLayout.Client;
+  FName.StyledSettings := [TStyledSetting.Family, TStyledSetting.Style, TStyledSetting.FontColor];
+  FName.TextAlign := TTextAlign.Center;
+  FName.TextSettings.Font.Size := 18;
+  FName.WordWrap := False;
+  FName.Margins.Left := 10;
+  FName.Margins.Right := 10;
+  FName.Margins.Top := 15;
+  FName.Margins.Bottom := 10;
+  FName.StyleLookup := 'listboxitemlabel';
+
+  FPath := TLabel.Create(AOwner);
+  FPath.Parent := Self;
+  FPath.Align := TAlignLayout.Bottom;
+  FPath.StyledSettings := [TStyledSetting.Family, TStyledSetting.Style, TStyledSetting.FontColor];
+  FPath.TextAlign := TTextAlign.Leading;
+  FPath.TextSettings.Font.Size := 13;
+  FPath.Margins.Left := 15;
+  FPath.Margins.Right := 5;
+  FPath.Margins.Bottom := 5;
+  FPath.WordWrap := False;
+  FPath.StyleLookup := 'listboxitemdetaillabel';
+
+  RefreshData;
+end;
+
+procedure TProjectScrollItem.RefreshData;
+begin
+  FName.Text := FOrgConfiguration.GetName;
+  FPath.Text := FOrgConfiguration.GetPath;
+end;
+
+procedure TProjectScrollItem.Resize;
+begin
+  inherited;
+
+  FName.Canvas.Font.Assign(FName.Font);
+  var wantedHeight := Ceil(FName.Canvas.TextHeight('Yy'));
+
+  FPath.Canvas.Font.Assign(FPath.Font);
+  wantedHeight := wantedHeight + Ceil(FPath.Canvas.TextHeight('Yy'));
+
+  Height := wantedHeight + FPath.Margins.Top + FPath.Margins.Bottom +
+    FName.Margins.Top + FName.Margins.Bottom
+end;
+
+procedure TProjectScrollItem.SetSelected(const Value: Boolean);
+begin
+  FSelected := Value;
+  if FSelected then
+    StyleLookup := 'rScrollItemSelectedStyle'
+  else
+    StyleLookup := 'rScrollItemStyle';
+end;
+
+{ TProjectScrollItems }
+
+procedure TProjectScrollItems.ClearSelection;
+begin
+  for var item in Self do
+    item.Selected := False;
+end;
+
+constructor TProjectScrollItems.Create(AOwner: TCustomScrollBox);
+begin
+  inherited Create;
+  FOwnerScroll := AOwner;
+end;
+
+procedure TProjectScrollItems.SelectAll;
+begin
+  for var item in Self do
+    item.Selected := True;
+end;
+
+function TProjectScrollItems.SelectedCount: Integer;
 begin
   Result := 0;
   for var item in Self do

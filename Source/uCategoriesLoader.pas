@@ -49,6 +49,8 @@ type
 
     procedure Add(ACategory: ICategory);
     procedure Delete(AId: Integer);
+
+    procedure Save(const APath, AName: string);
   end;
 
   TFibbageCategories = class(TInterfacedObject, IFibbageCategories)
@@ -76,6 +78,7 @@ type
     function CreateNewFinalCategory: Integer;
     procedure RemoveShortieCategory(AQuestion: IQuestion);
     procedure RemoveFinalCategory(AQuestion: IQuestion);
+    procedure Save(const APath: string);
   end;
 
 implementation
@@ -181,14 +184,19 @@ end;
 
 function TFibbageCategories.GetCategories(const APath: string): TCategories;
 begin
-  var fs := TFileStream.Create(APath, fmOpenRead);
-  var sr := TStreamReader.Create(fs);
-  try
-    Result := TJSON.JsonToObject<TCategories>(sr.ReadToEnd);
-  finally
-    sr.Free;
-    fs.Free;
-  end;
+  if FileExists(APath) then
+  begin
+    var fs := TFileStream.Create(APath, fmOpenRead);
+    var sr := TStreamReader.Create(fs);
+    try
+      Result := TJSON.JsonToObject<TCategories>(sr.ReadToEnd);
+    finally
+      sr.Free;
+      fs.Free;
+    end;
+  end
+  else
+    Result := TCategories.Create;
 end;
 
 function TFibbageCategories.GetFinalCategory(AQuestion: IQuestion): ICategory;
@@ -219,6 +227,12 @@ begin
 
   LoadShortieCategories;
   LoadFinalCategories;
+end;
+
+procedure TFibbageCategories.Save(const APath: string);
+begin
+  ShortieCategories.Save(APath, 'fibbageshortie');
+  FinalCategories.Save(APath, 'finalfibbage');
 end;
 
 function TFibbageCategories.ShortieCategories: ICategories;
@@ -276,9 +290,34 @@ end;
 
 procedure TCategories.InitializeContentList;
 begin
+  FContentList.Clear;
   for var item in FContent do
     FContentList.Add(item);
   FContentListInitialized := True;
+end;
+
+procedure TCategories.Save(const APath, AName: string);
+begin
+  SetLength(FContent, FContentList.Count);
+  for var idx := 0 to FContentList.Count - 1 do
+  begin
+    var item := TCategoryData.Create;
+    item.SetId((FContentList[idx] as ICategory).GetId);
+    item.SetCategory((FContentList[idx] as ICategory).GetCategory);
+    FContent[idx] := item;
+  end;
+
+  InitializeContentList;
+
+  var test := TJson.ObjectToJsonString(Self);
+  var fs := TFileStream.Create(TPath.Combine(APath, AName + '.jet'), fmCreate);
+  var sw := TStreamWriter.Create(fs);
+  try
+    sw.WriteLine(test);
+  finally
+    sw.Free;
+    fs.Free;
+  end;
 end;
 
 { TCategoryData }
