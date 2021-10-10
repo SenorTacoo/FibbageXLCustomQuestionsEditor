@@ -61,6 +61,9 @@ type
     procedure SetSuggestions(const ASuggestions: string);
     procedure SetAnswer(const AAnswer: string);
     procedure SetAlternateSpelling(const AAlternateSpelling: string);
+    procedure SetQuestionAudioPath(const AAudioPath: string);
+    procedure SetAnswerAudioPath(const AAudioPath: string);
+    procedure SetBumperAudioPath(const AAudioPath: string);
 
     procedure Save(const APath: string);
   end;

@@ -62,6 +62,9 @@ type
     procedure SetSuggestions(const ASuggestions: string);
     procedure SetAnswer(const AAnswer: string);
     procedure SetAlternateSpelling(const AAlternateSpelling: string);
+    procedure SetQuestionAudioPath(const AAudioPath: string);
+    procedure SetAnswerAudioPath(const AAudioPath: string);
+    procedure SetBumperAudioPath(const AAudioPath: string);
 
     procedure Save(const APath: string);
 
@@ -346,6 +349,46 @@ begin
     end;
 end;
 
+procedure TQuestionItem.SetAnswerAudioPath(const AAudioPath: string);
+begin
+  var audioName := '';
+  for var field in FFields do
+    if SameText('CorrectAudio', field.N) then
+    begin
+      audioName := field.V;
+      field.V := ChangeFileExt(ExtractFileName(AAudioPath), '');
+      Break;
+    end;
+  if audioName.IsEmpty then
+    Exit;
+  for var audio in FAudios do
+    if SameText(ChangeFileExt(ExtractFileName(audio.FPath), ''), audioName) then
+    begin
+      audio.Path := AAudioPath;
+      Break;
+    end;
+end;
+
+procedure TQuestionItem.SetBumperAudioPath(const AAudioPath: string);
+begin
+  var audioName := '';
+  for var field in FFields do
+    if SameText('BumperAudio', field.N) then
+    begin
+      audioName := field.V;
+      field.V := ChangeFileExt(ExtractFileName(AAudioPath), '');
+      Break;
+    end;
+  if audioName.IsEmpty then
+    Exit;
+  for var audio in FAudios do
+    if SameText(ChangeFileExt(ExtractFileName(audio.FPath), ''), audioName) then
+    begin
+      audio.Path := AAudioPath;
+      Break;
+    end;
+end;
+
 procedure TQuestionItem.SetId(AId: Integer);
 begin
   FId := AId;
@@ -357,6 +400,26 @@ begin
     if SameText('QuestionText', field.N) then
     begin
       field.V := AQuestion;
+      Break;
+    end;
+end;
+
+procedure TQuestionItem.SetQuestionAudioPath(const AAudioPath: string);
+begin
+  var audioName := '';
+  for var field in FFields do
+    if SameText('QuestionAudio', field.N) then
+    begin
+      audioName := field.V;
+      field.V := ChangeFileExt(ExtractFileName(AAudioPath), '');
+      Break;
+    end;
+  if audioName.IsEmpty then
+    Exit;
+  for var audio in FAudios do
+    if SameText(ChangeFileExt(ExtractFileName(audio.FPath), ''), audioName) then
+    begin
+      audio.Path := AAudioPath;
       Break;
     end;
 end;

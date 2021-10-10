@@ -5,7 +5,7 @@ object RecordForm: TRecordForm
   Caption = 'Audio'
   ClientHeight = 305
   ClientWidth = 493
-  Position = Designed
+  Position = OwnerFormCenter
   StyleBook = FrmMain.sbLightStyle
   FormFactor.Width = 320
   FormFactor.Height = 480
@@ -155,6 +155,7 @@ object RecordForm: TRecordForm
       end>
     object bSaveRecordedAudio: TButton
       Anchors = []
+      Enabled = False
       Position.X = 273.750000000000000000
       Size.Width = 192.000000000000000000
       Size.Height = 50.000000000000000000

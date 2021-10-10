@@ -16,6 +16,9 @@ uses
 {$R *.res}
 
 begin
+  {$ifdef mswindows}
+  ReportMemoryLeaksOnShutdown := DebugHook <> 0;
+  {$endif}
   Application.Initialize;
   Application.CreateForm(TFrmMain, FrmMain);
   Application.Run;
