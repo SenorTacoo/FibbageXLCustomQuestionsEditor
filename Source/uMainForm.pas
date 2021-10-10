@@ -90,7 +90,6 @@ type
     sDarkMode: TSwitch;
     lDarkMode: TLabel;
     aGoToQuestionDetails: TChangeTabAction;
-    bGoBackFromDetails: TButton;
     lySingleItemControls: TLayout;
     lySingleItemQuestion: TLayout;
     pSingleItemQuestion: TPanel;
@@ -193,7 +192,6 @@ type
     tiEditProject: TTabItem;
     ToolBar4: TToolBar;
     lEditProject: TLabel;
-    bGoBackFromEditProject: TButton;
     lyEditProjectName: TLayout;
     eProjectName: TEdit;
     lEditProjectName: TLabel;
@@ -218,6 +216,14 @@ type
     MenuItem1: TMenuItem;
     miOpenLocal: TMenuItem;
     aOpenInWindowsExplorer: TAction;
+    bCancelQuestionChanges: TButton;
+    bSaveQuestionChanges: TButton;
+    aSaveQuestionChanges: TAction;
+    aCancelQuestionChanges: TAction;
+    bSaveProjectChanges: TButton;
+    bCancelProjectChanges: TButton;
+    aSaveProjectChanges: TAction;
+    aCancelProjectChanges: TAction;
     procedure lDarkModeClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormResize(Sender: TObject);
@@ -226,14 +232,12 @@ type
     procedure bSingleItemQuestionAudioClick(Sender: TObject);
     procedure bSingleItemCorrectAudioClick(Sender: TObject);
     procedure bSingleItemBumperAudioClick(Sender: TObject);
-    procedure bGoBackFromDetailsClick(Sender: TObject);
     procedure bHomeButtonClick(Sender: TObject);
     procedure bQuestionsClick(Sender: TObject);
     procedure bShortieQuestionsClick(Sender: TObject);
     procedure bFinalQuestionsClick(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
-    procedure FormKeyDown(Sender: TObject; var Key: Word; var KeyChar: Char;
-      Shift: TShiftState);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; var KeyChar: Char; Shift: TShiftState);
     procedure aRemoveQuestionsExecute(Sender: TObject);
     procedure aAddQuestionExecute(Sender: TObject);
     procedure aEditQuestionExecute(Sender: TObject);
@@ -251,9 +255,12 @@ type
     procedure pmProjectsPopup(Sender: TObject);
     procedure aRemoveProjectsAllDataExecute(Sender: TObject);
     procedure aRemoveProjectsJustLastInfoExecute(Sender: TObject);
-    procedure bGoBackFromEditProjectClick(Sender: TObject);
     procedure aSaveProjectAsExecute(Sender: TObject);
     procedure aOpenInWindowsExplorerExecute(Sender: TObject);
+    procedure aSaveQuestionChangesExecute(Sender: TObject);
+    procedure aCancelQuestionChangesExecute(Sender: TObject);
+    procedure aSaveProjectChangesExecute(Sender: TObject);
+    procedure aCancelProjectChangesExecute(Sender: TObject);
   private
     FAppCreated: Boolean;
     FChangingTab: Boolean;
@@ -342,6 +349,22 @@ begin
 
   lNewQuestion.Text := 'New question';
   GoToQuestionDetails;
+end;
+
+procedure TFrmMain.aCancelProjectChangesExecute(Sender: TObject);
+begin
+  if FChangingTab then
+    Exit;
+
+  GoToHome;
+end;
+
+procedure TFrmMain.aCancelQuestionChangesExecute(Sender: TObject);
+begin
+  if FChangingTab then
+    Exit;
+
+  GoToAllQuestions;
 end;
 
 procedure TFrmMain.AddLastChoosenProject;
@@ -690,6 +713,20 @@ begin
   TAsyncAction.Create(OnPreSaveAs, OnPostSaveAs, SaveProc).Start;
 end;
 
+procedure TFrmMain.aSaveProjectChangesExecute(Sender: TObject);
+begin
+  if FChangingTab then
+    Exit;
+
+  var doSave := eProjectName.Text <> FLastClickedConfiguration.OrgConfiguration.GetName;
+
+  FLastClickedConfiguration.OrgConfiguration.SetName(eProjectName.Text);
+  FLastClickedConfiguration.RefreshData;
+  if doSave then
+    FLastClickedConfiguration.OrgConfiguration.Save(FLastClickedConfiguration.OrgConfiguration.GetPath);
+  GoToHome;
+end;
+
 procedure TFrmMain.OnPreSaveAs;
 begin
   pLoading.Visible := True;
@@ -714,6 +751,28 @@ end;
 procedure TFrmMain.aSaveProjectExecute(Sender: TObject);
 begin
   TAsyncAction.Create(OnPreSave, OnPostSave, SaveProc).Start;
+end;
+
+procedure TFrmMain.aSaveQuestionChangesExecute(Sender: TObject);
+begin
+  if FChangingTab then
+    Exit;
+
+  FSelectedQuestion.SetQuestion(mSingleItemQuestion.Text.Trim);
+  FSelectedQuestion.SetAnswer(mSingleItemAnswer.Text.Trim);
+  FSelectedQuestion.SetAlternateSpelling(mSingleItemAlternateSpelling.Text.Replace(', ', ',').Trim);
+  FSelectedQuestion.SetSuggestions(mSingleItemSuggestions.Text.Replace(', ', ',').Trim);
+  FSelectedQuestion.SetId(StrToIntDef(eSingleItemId.Text.Trim, Random(High(Word))));
+
+  FSelectedCategory.SetId(FSelectedQuestion.GetId);
+  FSelectedCategory.SetCategory(eSingleItemCategory.Text.Trim);
+
+  if FSelectedQuestion.GetQuestionType = qtShortie then
+    RefreshSelectedShortieQuestion
+  else
+    RefreshSelectedFinalQuestion;
+
+  GoToAllQuestions;
 end;
 
 procedure TFrmMain.OnPreSave;
@@ -1087,6 +1146,7 @@ begin
   aRemoveProjects.Text := IfThen(selCnt > 1, 'Remove projects', 'Remove project');
   aRemoveProjects.Enabled := selCnt > 0;
   aEditProjectDetails.Enabled := Assigned(FLastClickedConfigurationToEdit) and (selCnt = 1);
+  aInitializeProject.Enabled := selCnt > 0;
   aOpenInWindowsExplorer.Visible := selCnt > 0;
   MenuItem1.Visible := aOpenInWindowsExplorer.Visible;
 end;
@@ -1150,6 +1210,9 @@ end;
 
 procedure TFrmMain.bFinalQuestionsClick(Sender: TObject);
 begin
+  if FChangingTab then
+    Exit;
+
   LogEnter(Self, 'bShortieQuestionsClick');
   GoToFinalQuestions;
   LogExit(Self, 'bShortieQuestionsClick');
@@ -1210,35 +1273,6 @@ begin
   PrepareMultiViewButtons(atHome);
 end;
 
-procedure TFrmMain.bGoBackFromDetailsClick(Sender: TObject);
-begin
-  FSelectedQuestion.SetQuestion(mSingleItemQuestion.Text.Trim);
-  FSelectedQuestion.SetAnswer(mSingleItemAnswer.Text.Trim);
-  FSelectedQuestion.SetAlternateSpelling(mSingleItemAlternateSpelling.Text.Replace(', ', ',').Trim);
-  FSelectedQuestion.SetSuggestions(mSingleItemSuggestions.Text.Replace(', ', ',').Trim);
-  FSelectedQuestion.SetId(StrToIntDef(eSingleItemId.Text.Trim, Random(High(Word))));
-  FSelectedCategory.SetId(FSelectedQuestion.GetId);
-  FSelectedCategory.SetCategory(eSingleItemCategory.Text.Trim);
-
-  if FSelectedQuestion.GetQuestionType = qtShortie then
-    RefreshSelectedShortieQuestion
-  else
-    RefreshSelectedFinalQuestion;
-
-  GoToAllQuestions;
-end;
-
-procedure TFrmMain.bGoBackFromEditProjectClick(Sender: TObject);
-begin
-  var doSave := eProjectName.Text <> FLastClickedConfiguration.OrgConfiguration.GetName;
-
-  FLastClickedConfiguration.OrgConfiguration.SetName(eProjectName.Text);
-  FLastClickedConfiguration.RefreshData;
-  if doSave then
-    FLastClickedConfiguration.OrgConfiguration.Save(FLastClickedConfiguration.OrgConfiguration.GetPath);
-  GoToHome;
-end;
-
 procedure TFrmMain.bGoToHomeClick(Sender: TObject);
 begin
   GoToHome;
@@ -1281,6 +1315,9 @@ end;
 
 procedure TFrmMain.bShortieQuestionsClick(Sender: TObject);
 begin
+  if FChangingTab then
+    Exit;
+
   LogEnter(Self, 'bShortieQuestionsClick');
   GoToShortieQuestions;
   LogExit(Self, 'bShortieQuestionsClick');
@@ -1414,6 +1451,8 @@ begin
   end;
   PrepareMultiViewButtons(atSingleQuestion);
   aRemoveQuestions.Enabled := True;
+
+  eSingleItemId.SetFocus;
 end;
 
 procedure TFrmMain.InitializeLastQuestionProjects;
