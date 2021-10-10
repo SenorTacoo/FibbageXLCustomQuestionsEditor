@@ -3,6 +3,7 @@
 interface
 
 uses
+  uLog,
   System.Classes,
   System.SysUtils,
   System.Generics.Collections,
@@ -24,17 +25,6 @@ type
     property N: string read FN write FN;
   end;
 
-  TAudioItem = class
-  private
-    FPath: string;
-    FData: TBytes;
-    function GetName: string;
-  public
-    property Path: string read FPath write FPath;
-    property Data: TBytes read FData write FData;
-    property Name: string read GetName;
-  end;
-
   TQuestionItem = class(TInterfacedObject, IQuestion)
   strict private const
     EMPTY_STRING = '{EMPTY_STRING}';
@@ -42,15 +32,29 @@ type
     FFields: TArray<TQuestionField>;
 
     [JSONMarshalledAttribute(False)]
-    FAudios: TObjectList<TAudioItem>;
-    [JSONMarshalledAttribute(False)]
     FId: Integer;
     [JSONMarshalledAttribute(False)]
     FQuestionType: TQuestionType;
+    [JSONMarshalledAttribute(False)]
+    FQuestionAudioPath: string;
+    [JSONMarshalledAttribute(False)]
+    FAnswerAudioPath: string;
+    [JSONMarshalledAttribute(False)]
+    FBumperAudioPath: string;
 
     procedure PrepareEmptyValues;
+    procedure SetHaveQuestionAudio(AHave: Boolean);
+    procedure SetHaveAnswerAudio(AHave: Boolean);
+    procedure SetHaveBumperAudio(AHave: Boolean);
+    procedure SetAnswerAudioName(const AName: string);
+
+    function GetQuestionAudioName: string;
+    function GetAnswerAudioName: string;
+    function GetBumperAudioName: string;
+    procedure SetBumperAudioName(const AName: string);
+    procedure SetQuestionAudioName(const AName: string);
+    procedure InnerDeleteTempFile(const APath: string);
   public
-    constructor Create;
     destructor Destroy; override;
 
     procedure SetDefaults;
@@ -60,15 +64,20 @@ type
     function GetSuggestions: string;
     function GetAnswer: string;
     function GetAlternateSpelling: string;
-    function GetQuestionAudioPath: string;
-    function GetAnswerAudioPath: string;
-    function GetBumperAudioPath: string;
+    function GetHaveQuestionAudio: Boolean;
+    function GetHaveAnswerAudio: Boolean;
+    function GetHaveBumperAudio: Boolean;
 
     procedure SetId(AId: Integer);
     procedure SetQuestion(const AQuestion: string);
     procedure SetSuggestions(const ASuggestions: string);
     procedure SetAnswer(const AAnswer: string);
     procedure SetAlternateSpelling(const AAlternateSpelling: string);
+
+    function GetQuestionAudioPath: string;
+    function GetAnswerAudioPath: string;
+    function GetBumperAudioPath: string;
+
     procedure SetQuestionAudioPath(const AAudioPath: string);
     procedure SetAnswerAudioPath(const AAudioPath: string);
     procedure SetBumperAudioPath(const AAudioPath: string);
@@ -77,13 +86,12 @@ type
 
     function GetQuestionType: TQuestionType;
     procedure SetQuestionType(AQuestionType: TQuestionType);
+    procedure DeleteAnswerAudio;
+    procedure DeleteBumperAudio;
+    procedure DeleteQuestionAudio;
 
     property Fields: TArray<TQuestionField> read FFields write FFields;
   end;
-
-//  TQuestionList = class(TList<IQuestion>)
-//
-//  end;
 
   TQuestionListHelper = class helper for TQuestionList
   public
@@ -205,20 +213,10 @@ begin
       sr.Free;
     end;
     singleQuestion.FId := StrToIntDef(ExtractFileName(dir), 0);
-    for var idx := 0 to Length(audioFiles) - 1 do
-    begin
-      fs := TFileStream.Create(audioFiles[idx], fmOpenRead);
-      try
-        var newAudio := TAudioItem.Create;
-        newAudio.Path := audioFiles[idx];
-        SetLength(buffer, fs.Size);
-        fs.Read(buffer[0], fs.Size);
-        newAudio.Data := buffer;
-        singleQuestion.FAudios.Add(newAudio);
-      finally
-        fs.Free;
-      end;
-    end;
+    singleQuestion.FQuestionAudioPath := dir;
+    singleQuestion.FAnswerAudioPath := dir;
+    singleQuestion.FBumperAudioPath := dir;
+
     singleQuestion.PrepareEmptyValues;
     AQuestionsList.Add(singleQuestion);
   end;
@@ -247,19 +245,41 @@ end;
 
 { TQuestionItem }
 
-constructor TQuestionItem.Create;
-begin
-  inherited;
-  FAudios := TObjectList<TAudioItem>.Create;
-end;
-
 destructor TQuestionItem.Destroy;
 begin
-  FAudios.Free;
+  InnerDeleteTempFile(GetAnswerAudioPath);
+  InnerDeleteTempFile(GetBumperAudioPath);
+  InnerDeleteTempFile(GetQuestionAudioPath);
+
   for var idx := Length(FFields) - 1 downto 0 do
     FreeAndNil(FFields[idx]);
   SetLength(FFields, 0);
   inherited;
+end;
+
+procedure TQuestionItem.InnerDeleteTempFile(const APath: string);
+begin
+  if FileExists(APath) then
+    if APath.StartsWith(TPath.GetTempPath) then
+      TFile.Delete(APath);
+end;
+
+procedure TQuestionItem.DeleteQuestionAudio;
+begin
+  if FileExists(GetQuestionAudioPath) then
+    TFile.Delete(GetQuestionAudioPath);
+end;
+
+procedure TQuestionItem.DeleteAnswerAudio;
+begin
+  if FileExists(GetAnswerAudioPath) then
+    TFile.Delete(GetAnswerAudioPath);
+end;
+
+procedure TQuestionItem.DeleteBumperAudio;
+begin
+  if FileExists(GetBumperAudioPath) then
+    TFile.Delete(GetBumperAudioPath);
 end;
 
 function TQuestionItem.GetAlternateSpelling: string;
@@ -279,38 +299,69 @@ begin
       Exit(field.V);
 end;
 
-function TQuestionItem.GetBumperAudioPath: string;
+function TQuestionItem.GetBumperAudioName: string;
 begin
   Result := '';
-  var audioName := '';
   for var field in FFields do
     if SameText('BumperAudio', field.N) then
     begin
-      audioName := field.V;
+      Result := field.V;
       Break;
     end;
-  if audioName.IsEmpty then
-    Exit;
-  for var audio in FAudios do
-    if SameText(ChangeFileExt(ExtractFileName(audio.FPath), ''), audioName) then
-      Exit(audio.Path);
+end;
+
+function TQuestionItem.GetBumperAudioPath: string;
+begin
+  Result := TPath.Combine(FBumperAudioPath, GetBumperAudioName + '.ogg');
+end;
+
+function TQuestionItem.GetHaveAnswerAudio: Boolean;
+begin
+  Result := False;
+  for var field in FFields do
+    if SameText('HasCorrectAudio', field.N) then
+    begin
+      Result := StrToBoolDef(field.V, False);
+      Break;
+    end;
+end;
+
+function TQuestionItem.GetHaveBumperAudio: Boolean;
+begin
+  Result := False;
+  for var field in FFields do
+    if SameText('HasBumperAudio', field.N) then
+    begin
+      Result := StrToBoolDef(field.V, False);
+      Break;
+    end;
+end;
+
+function TQuestionItem.GetHaveQuestionAudio: Boolean;
+begin
+  Result := False;
+  for var field in FFields do
+    if SameText('HasQuestionAudio', field.N) then
+    begin
+      Result := StrToBoolDef(field.V, False);
+      Break;
+    end;
+end;
+
+function TQuestionItem.GetAnswerAudioName: string;
+begin
+  Result := '';
+  for var field in FFields do
+    if SameText('CorrectAudio', field.N) then
+    begin
+      Result := field.V;
+      Break;
+    end;
 end;
 
 function TQuestionItem.GetAnswerAudioPath: string;
 begin
-  Result := '';
-  var audioName := '';
-  for var field in FFields do
-    if SameText('CorrectAudio', field.N) then
-    begin
-      audioName := field.V;
-      Break;
-    end;
-  if audioName.IsEmpty then
-    Exit;
-  for var audio in FAudios do
-    if SameText(ChangeFileExt(ExtractFileName(audio.FPath), ''), audioName) then
-      Exit(audio.Path);
+  Result := TPath.Combine(FAnswerAudioPath, GetAnswerAudioName + '.ogg');
 end;
 
 function TQuestionItem.GetId: Integer;
@@ -325,21 +376,20 @@ begin
       Exit(field.V);
 end;
 
-function TQuestionItem.GetQuestionAudioPath: string;
+function TQuestionItem.GetQuestionAudioName: string;
 begin
   Result := '';
-  var audioName := '';
   for var field in FFields do
     if SameText('QuestionAudio', field.N) then
     begin
-      audioName := field.V;
+      Result := field.V;
       Break;
     end;
-  if audioName.IsEmpty then
-    Exit;
-  for var audio in FAudios do
-    if SameText(ChangeFileExt(ExtractFileName(audio.FPath), ''), audioName) then
-      Exit(audio.Path);
+end;
+
+function TQuestionItem.GetQuestionAudioPath: string;
+begin
+  Result := TPath.Combine(FQuestionAudioPath, GetQuestionAudioName + '.ogg');
 end;
 
 function TQuestionItem.GetQuestionType: TQuestionType;
@@ -355,7 +405,7 @@ begin
   var data := TJson.ObjectToJsonString(Self, [joIgnoreEmptyStrings])
     .Replace(EMPTY_STRING, '');
 
-  var dir := TPath.Combine(APath, IntToStr(FId));
+  var dir := IncludeTrailingPathDelimiter(TPath.Combine(APath, IntToStr(FId)));
   ForceDirectories(dir);
 
   fs := TFileStream.Create(TPath.Combine(dir, 'data.jet'), fmCreate);
@@ -367,15 +417,41 @@ begin
     sw.Free;
   end;
 
-  for var audioFile in FAudios do
-  begin
-    fs := TFileStream.Create(TPath.Combine(dir, audioFile.GetName + '.ogg'), fmCreate);
-    try
-      fs.Write(audioFile.Data, Length(audioFile.Data));
-    finally
-      fs.Free;
-    end;
-  end;
+  if GetHaveQuestionAudio then
+    if FileExists(GetQuestionAudioPath) then
+    begin
+      if ExtractFilePath(GetQuestionAudioPath) <> dir then
+      begin
+        TFile.Move(GetQuestionAudioPath, TPath.Combine(dir, ExtractFileName(GetQuestionAudioPath)));
+        SetQuestionAudioPath(TPath.Combine(dir, ExtractFileName(GetQuestionAudioPath)));
+      end;
+    end
+    else
+      LogE('Have question audio but file "%s" does not exist', [GetQuestionAudioPath]);
+
+  if GetHaveAnswerAudio then
+    if FileExists(GetAnswerAudioPath) then
+    begin
+      if ExtractFilePath(GetAnswerAudioPath) <> dir then
+      begin
+        TFile.Move(GetAnswerAudioPath, TPath.Combine(dir, ExtractFileName(GetAnswerAudioPath)));
+        SetAnswerAudioPath(TPath.Combine(dir, ExtractFileName(GetAnswerAudioPath)));
+      end;
+    end
+    else
+      LogE('Have answer audio but file "%s" does not exist', [GetQuestionAudioPath]);
+
+  if GetHaveBumperAudio then
+    if FileExists(GetBumperAudioPath) then
+    begin
+      if ExtractFilePath(GetBumperAudioPath) <> dir then
+      begin
+        TFile.Move(GetBumperAudioPath, TPath.Combine(dir, ExtractFileName(GetBumperAudioPath)));
+        SetBumperAudioPath(TPath.Combine(dir, ExtractFileName(GetBumperAudioPath)));
+      end;
+    end
+    else
+      LogE('Have bumper audio but file "%s" does not exist', [GetBumperAudioPath]);
 end;
 
 procedure TQuestionItem.SetAlternateSpelling(const AAlternateSpelling: string);
@@ -403,40 +479,34 @@ end;
 
 procedure TQuestionItem.SetAnswerAudioPath(const AAudioPath: string);
 begin
-  var audioName := '';
+  FAnswerAudioPath := ExtractFilePath(AAudioPath);
+  SetAnswerAudioName(ChangeFileExt(ExtractFileName(AAudioPath), ''));
+end;
+
+procedure TQuestionItem.SetAnswerAudioName(const AName: string);
+begin
   for var field in FFields do
     if SameText('CorrectAudio', field.N) then
     begin
-      audioName := field.V;
-      field.V := ChangeFileExt(ExtractFileName(AAudioPath), '');
-      Break;
-    end;
-  if audioName.IsEmpty then
-    Exit;
-  for var audio in FAudios do
-    if SameText(ChangeFileExt(ExtractFileName(audio.FPath), ''), audioName) then
-    begin
-      audio.Path := AAudioPath;
+      field.V := AName;
+      SetHaveAnswerAudio(not AName.IsEmpty);
       Break;
     end;
 end;
 
 procedure TQuestionItem.SetBumperAudioPath(const AAudioPath: string);
 begin
-  var audioName := '';
+  FBumperAudioPath := ExtractFilePath(AAudioPath);
+  SetBumperAudioName(ChangeFileExt(ExtractFileName(AAudioPath), ''));
+end;
+
+procedure TQuestionItem.SetBumperAudioName(const AName: string);
+begin
   for var field in FFields do
     if SameText('BumperAudio', field.N) then
     begin
-      audioName := field.V;
-      field.V := ChangeFileExt(ExtractFileName(AAudioPath), '');
-      Break;
-    end;
-  if audioName.IsEmpty then
-    Exit;
-  for var audio in FAudios do
-    if SameText(ChangeFileExt(ExtractFileName(audio.FPath), ''), audioName) then
-    begin
-      audio.Path := AAudioPath;
+      field.V := AName;
+      SetHaveBumperAudio(not AName.IsEmpty);
       Break;
     end;
 end;
@@ -511,6 +581,36 @@ begin
   FFields[12].T := 'A';
 end;
 
+procedure TQuestionItem.SetHaveAnswerAudio(AHave: Boolean);
+begin
+  for var field in FFields do
+    if SameText('HasCorrectAudio', field.N) then
+    begin
+      field.V := BoolToStr(AHave, True);
+      Break;
+    end;
+end;
+
+procedure TQuestionItem.SetHaveBumperAudio(AHave: Boolean);
+begin
+  for var field in FFields do
+    if SameText('HasBumperAudio', field.N) then
+    begin
+      field.V := BoolToStr(AHave, True);
+      Break;
+    end;
+end;
+
+procedure TQuestionItem.SetHaveQuestionAudio(AHave: Boolean);
+begin
+  for var field in FFields do
+    if SameText('HasQuestionAudio', field.N) then
+    begin
+      field.V := BoolToStr(AHave, True);
+      Break;
+    end;
+end;
+
 procedure TQuestionItem.SetId(AId: Integer);
 begin
   FId := AId;
@@ -528,20 +628,17 @@ end;
 
 procedure TQuestionItem.SetQuestionAudioPath(const AAudioPath: string);
 begin
-  var audioName := '';
+  FQuestionAudioPath := ExtractFilePath(AAudioPath);
+  SetQuestionAudioName(ChangeFileExt(ExtractFileName(AAudioPath), ''));
+end;
+
+procedure TQuestionItem.SetQuestionAudioName(const AName: string);
+begin
   for var field in FFields do
     if SameText('QuestionAudio', field.N) then
     begin
-      audioName := field.V;
-      field.V := ChangeFileExt(ExtractFileName(AAudioPath), '');
-      Break;
-    end;
-  if audioName.IsEmpty then
-    Exit;
-  for var audio in FAudios do
-    if SameText(ChangeFileExt(ExtractFileName(audio.FPath), ''), audioName) then
-    begin
-      audio.Path := AAudioPath;
+      field.V := AName;
+      SetHaveQuestionAudio(not AName.IsEmpty);
       Break;
     end;
 end;
@@ -616,13 +713,6 @@ end;
 function TQuestions.ShortieQuestions: TQuestionList;
 begin
   Result := FShortieQuestions;
-end;
-
-{ TAudioItem }
-
-function TAudioItem.GetName: string;
-begin
-  Result := ChangeFileExt(ExtractFileName(FPath), '');
 end;
 
 { TQuestionListHelper }

@@ -92,7 +92,7 @@ begin
     if path.Trim.IsEmpty then
       Continue;
 
-    var item := GlobalContainer.Resolve<IContentConfiguration>;// Spri TProj QuestionInfo.Create;
+    var item := GlobalContainer.Resolve<IContentConfiguration>;
     item.Initialize(path);
     Result.Add(item);
   end;

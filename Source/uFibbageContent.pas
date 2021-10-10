@@ -26,7 +26,6 @@ type
     function GetPath: string;
 
     procedure Initialize(AConfiguration: IContentConfiguration; AOnContentInitialized: TOnContentInitialized; AOnContentError: TOnContentError);
-    procedure InitializeEmpty(AOnContentInitialized: TOnContentInitialized; AOnContentError: TOnContentError);
 
     procedure Save(const APath: string);
 
@@ -100,16 +99,6 @@ begin
             AOnContentError(E.Message);
       end;
     end).Start;
-end;
-
-procedure TFibbageContent.InitializeEmpty(AOnContentInitialized: TOnContentInitialized;
-  AOnContentError: TOnContentError);
-begin
-//  FCategories.LoadCategories(FContentPath); // initialize empty
-//  FQuestionsLoader.LoadQuestions(FContentPath);
-//  FConfig.Initialize(FProjectPath);
-  if Assigned(AOnContentInitialized) then
-    AOnContentInitialized;
 end;
 
 function TFibbageContent.Questions: IFibbageQuestions;

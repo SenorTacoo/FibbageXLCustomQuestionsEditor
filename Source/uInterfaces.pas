@@ -69,6 +69,9 @@ type
     function GetQuestionType: TQuestionType;
     procedure SetQuestionType(AQuestionType: TQuestionType);
     procedure Save(const APath: string);
+    procedure DeleteAnswerAudio;
+    procedure DeleteBumperAudio;
+    procedure DeleteQuestionAudio;
   end;
 
   TQuestionList = TList<IQuestion>;
@@ -110,7 +113,6 @@ type
     function GetPath: string;
 
     procedure Initialize(AConfiguration: IContentConfiguration; AOnContentInitialized: TOnContentInitialized; AOnContentError: TOnContentError);
-    procedure InitializeEmpty(AOnContentInitialized: TOnContentInitialized; AOnContentError: TOnContentError);
 
     procedure Save(const APath: string);
     procedure AddShortieQuestion;
