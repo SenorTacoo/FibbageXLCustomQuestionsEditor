@@ -261,6 +261,7 @@ type
     procedure aCancelQuestionChangesExecute(Sender: TObject);
     procedure aSaveProjectChangesExecute(Sender: TObject);
     procedure aCancelProjectChangesExecute(Sender: TObject);
+    procedure mDisableEnter(Sender: TObject; var Key: Word; var KeyChar: Char; Shift: TShiftState);
   private
     FAppCreated: Boolean;
     FChangingTab: Boolean;
@@ -1541,6 +1542,13 @@ begin
   cdDrawable.Width := baseLV.Width - cdDrawable.PlaceOffset.X;
 
   AItem.Height := Round(sDrawable.PlaceOffset.Y + sDrawable.Height + 6);
+end;
+
+procedure TFrmMain.mDisableEnter(Sender: TObject; var Key: Word;
+  var KeyChar: Char; Shift: TShiftState);
+begin
+  if Key = vkReturn then
+    Key := 0;
 end;
 
 { TQuestionScrollItem }
