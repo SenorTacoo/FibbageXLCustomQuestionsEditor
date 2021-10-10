@@ -22,7 +22,7 @@ initialization
 
   GlobalContainer := TContainer.Create;
 
-  GlobalContainer.RegisterType<IFibbagePathChecker, TFibbagePathChecker>;
+  GlobalContainer.RegisterType<IContentPathChecker, TContentPathChecker>;
   GlobalContainer.RegisterType<IQuestionsLoader, TQuestionsLoader>;
   GlobalContainer.RegisterType<ICategories, TCategories>;
   GlobalContainer.RegisterType<IFibbageCategories, TFibbageCategories>;

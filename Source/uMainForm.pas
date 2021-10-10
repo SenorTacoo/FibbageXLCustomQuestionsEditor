@@ -17,7 +17,7 @@ uses
   NewACDSAudio, System.Generics.Collections, uRecordForm, FMX.ListBox, 
   System.Messaging, System.DateUtils, uLog, uCategoriesLoader,
   FMX.Menus, System.StrUtils, uGetTextDlg, FMX.Objects, FMX.DialogService, uAsyncAction,
-  FMX.Effects, Winapi.Windows, Winapi.ShellAPI, FMX.Platform.Win;
+  FMX.Effects, Winapi.Windows, Winapi.ShellAPI, FMX.Platform.Win, Grijjy.CloudLogging;
 
 type
   TQuestionScrollItem = class(TPanel)
@@ -248,6 +248,8 @@ type
     lyQuestionData: TLayout;
     lFamilyFriendly: TLabel;
     sFamilyFriendly: TSwitch;
+    Splitter2: TSplitter;
+    Splitter3: TSplitter;
     procedure lDarkModeClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormResize(Sender: TObject);
@@ -522,7 +524,7 @@ procedure TFrmMain.aImportProjectExecute(Sender: TObject);
 var
   str: string;
 begin
-  var pathChecker := GlobalContainer.Resolve<IFibbagePathChecker>;
+  var pathChecker := GlobalContainer.Resolve<IContentPathChecker>;
   var cfg := GlobalContainer.Resolve<IContentConfiguration>;
   while True do
     if not GetProjectPath(str) then
@@ -953,12 +955,11 @@ begin
   FSelectedQuestion.SetAnswer(mSingleItemAnswer.Text.Trim);
   FSelectedQuestion.SetAlternateSpelling(mSingleItemAlternateSpelling.Text.Replace(', ', ',').Trim);
   FSelectedQuestion.SetSuggestions(mSingleItemSuggestions.Text.Replace(', ', ',').Trim);
-  FSelectedQuestion.SetId(StrToIntDef(eSingleItemId.Text.Trim, Random(High(Word))));
-  FSelectedQuestion.SetCategory(eSingleItemCategory.Text.Trim);
 
-  FSelectedCategory.SetId(FSelectedQuestion.GetId);
+  FSelectedCategory.SetId(StrToInt(eSingleItemId.Text));
   FSelectedCategory.SetCategory(eSingleItemCategory.Text.Trim);
   FSelectedCategory.SetIsFamilyFriendly(sFamilyFriendly.IsChecked);
+  FSelectedQuestion.SetCategoryObj(FSelectedCategory);
 
   if FSelectedQuestion.GetQuestionType = qtShortie then
     RefreshSelectedShortieQuestion
@@ -2014,5 +2015,9 @@ begin
     if item.Selected then
       Inc(Result);
 end;
+
+initialization
+
+  GrijjyLog.Connect(TAppConfig.GetInstance.LogBroker, TAppConfig.GetInstance.LogService);
 
 end.

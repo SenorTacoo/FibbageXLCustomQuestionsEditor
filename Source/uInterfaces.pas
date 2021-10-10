@@ -10,7 +10,7 @@ uses
 type
   IQuestion = interface;
 
-  IFibbagePathChecker = interface
+  IContentPathChecker = interface
     ['{D91F90A7-5AE3-44AF-BC55-60E0A89974BD}']
     function IsValid(const APath: string): Boolean;
   end;
@@ -69,7 +69,6 @@ type
     function GetCategoryObj: ICategory;
     function GetCategory: string;
 
-    procedure SetId(AId: Integer);
     procedure SetQuestion(const AQuestion: string);
     procedure SetSuggestions(const ASuggestions: string);
     procedure SetAnswer(const AAnswer: string);
@@ -77,12 +76,12 @@ type
     procedure SetQuestionAudioData(const AData: TBytes);
     procedure SetAnswerAudioData(const AData: TBytes);
     procedure SetBumperAudioData(const AData: TBytes);
-    procedure SetCategory(const ACategory: string);
     procedure SetCategoryObj(ACategory: ICategory);
 
     function GetQuestionType: TQuestionType;
     procedure SetQuestionType(AQuestionType: TQuestionType);
     procedure Save(const APath: string);
+    procedure CloneFrom(AObj: IQuestion);
   end;
 
   TQuestionList = TList<IQuestion>;
@@ -94,6 +93,8 @@ type
     procedure Save(const APath: string);
     procedure RemoveShortieQuestion(AQuestion: IQuestion);
     procedure RemoveFinalQuestion(AQuestion: IQuestion);
+    function CreateNewShortieQuestion: IQuestion;
+    function CreateNewFinalQuestion: IQuestion;
   end;
 
   IQuestionsLoader = interface

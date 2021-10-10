@@ -9,7 +9,7 @@ uses
   uInterfaces;
 
 type
-  TFibbagePathChecker = class(TInterfacedObject, IFibbagePathChecker)
+  TContentPathChecker = class(TInterfacedObject, IContentPathChecker)
   public
     function IsValid(const APath: string): Boolean;
   end;
@@ -17,9 +17,9 @@ type
 
 implementation
 
-{ TFibbagePathChecker }
+{ TContentPathChecker }
 
-function TFibbagePathChecker.IsValid(const APath: string): Boolean;
+function TContentPathChecker.IsValid(const APath: string): Boolean;
 begin
   Result := False;
   if not DirectoryExists(APath) then

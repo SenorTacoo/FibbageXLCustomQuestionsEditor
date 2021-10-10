@@ -58,27 +58,17 @@ implementation
 procedure TFibbageContent.AddFinalQuestion;
 begin
   var category := FCategories.CreateNewFinalCategory;
-  var question := TQuestionItem.Create;
-  question.SetDefaults;
+  var question := FQuestionsLoader.Questions.CreateNewFinalQuestion;
 
   question.SetCategoryObj(category);
-  question.SetId(category.GetId);
-  question.SetQuestionType(qtFinal);
-
-  FQuestionsLoader.Questions.FinalQuestions.Add(question);
 end;
 
 procedure TFibbageContent.AddShortieQuestion;
 begin
   var category := FCategories.CreateNewShortieCategory;
-  var question := TQuestionItem.Create;
+  var question := FQuestionsLoader.Questions.CreateNewShortieQuestion;
 
-  question.SetDefaults;
   question.SetCategoryObj(category);
-  question.SetId(category.GetId);
-  question.SetQuestionType(qtShortie);
-
-  FQuestionsLoader.Questions.ShortieQuestions.Add(question);
 end;
 
 function TFibbageContent.Categories: IFibbageCategories;
@@ -89,38 +79,30 @@ end;
 procedure TFibbageContent.CopyToFinalQuestions(const AQuestion: IQuestion;
   out ANewQuestion: IQuestion);
 begin
-  var newQuestion := TQuestionItem.Create;
-  newQuestion.SetDefaults;
+  var newQuestion := FQuestionsLoader.Questions.CreateNewFinalQuestion;
   newQuestion.CloneFrom(AQuestion);
-  newQuestion.SetQuestionType(qtFinal);
 
   var newCategory := FCategories.CreateNewFinalCategory;
   newCategory.CloneFrom(AQuestion.GetCategoryObj);
 
   newCategory.SetId(FCategories.GetAvailableId);
-  newQuestion.SetId(newCategory.GetId);
   newQuestion.SetCategoryObj(newCategory);
 
-  FQuestionsLoader.Questions.FinalQuestions.Add(newQuestion);
   ANewQuestion := newQuestion;
 end;
 
 procedure TFibbageContent.CopyToShortieQuestions(const AQuestion: IQuestion;
   out ANewQuestion: IQuestion);
 begin
-  var newQuestion := TQuestionItem.Create;
-  newQuestion.SetDefaults;
+  var newQuestion := FQuestionsLoader.Questions.CreateNewShortieQuestion;
   newQuestion.CloneFrom(AQuestion);
-  newQuestion.SetQuestionType(qtShortie);
 
   var newCategory := FCategories.CreateNewShortieCategory;
   newCategory.CloneFrom(AQuestion.GetCategoryObj);
 
   newCategory.SetId(FCategories.GetAvailableId);
-  newQuestion.SetId(newCategory.GetId);
   newQuestion.SetCategoryObj(newCategory);
 
-  FQuestionsLoader.Questions.ShortieQuestions.Add(newQuestion);
   ANewQuestion := newQuestion;
 end;
 

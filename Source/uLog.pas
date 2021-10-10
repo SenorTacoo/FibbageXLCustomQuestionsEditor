@@ -6,8 +6,7 @@ uses
   Grijjy.CloudLogging,
   System.SysUtils,
   System.DateUtils,
-  System.Messaging,
-  uConfig;
+  System.Messaging;
 
 procedure Log(const AText: string; const AArgs: array of const); overload;
 procedure LogW(const AText: string; const AArgs: array of const); overload;
@@ -88,7 +87,6 @@ initialization
   TMessageManager.DefaultManager.SubscribeToMessage(TgoLiveWatchesMessage,
     HandleLiveWatches);
   FStartTime := Now;
-  GrijjyLog.Connect(TAppConfig.GetInstance.LogBroker, TAppConfig.GetInstance.LogService);
   Log('Initialized');
 
 finalization

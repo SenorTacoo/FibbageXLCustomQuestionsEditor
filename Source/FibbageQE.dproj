@@ -163,7 +163,6 @@
             <FormType>fmx</FormType>
         </DCCReference>
         <DCCReference Include="uLastQuestionsLoader.pas"/>
-        <DCCReference Include="uConsts.pas"/>
         <DCCReference Include="uLog.pas"/>
         <DCCReference Include="uGetTextDlg.pas">
             <Form>GetTextDlg</Form>
@@ -220,6 +219,12 @@
                     <Platform Name="Win32">
                         <RemoteDir>Assets\</RemoteDir>
                         <RemoteName>Logo150x150.png</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="bin\Win32\Release\FibbageQE.exe" Configuration="Release" Class="ProjectOutput">
+                    <Platform Name="Win32">
+                        <RemoteName>FibbageQE.exe</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>

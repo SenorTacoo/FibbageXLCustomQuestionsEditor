@@ -42,7 +42,7 @@ type
     [JSONMarshalledAttribute(False)]
     FBumperAudioBytes: TBytes;
     [JSONMarshalledAttribute(False)]
-    FCategory: ICategory;
+    FCategory: ICategory; {do not clone}
 
     procedure PrepareEmptyValues;
     procedure SetHaveQuestionAudio(AHave: Boolean);
@@ -56,6 +56,8 @@ type
     procedure SetAnswerAudioName(const AName: string);
     procedure SetBumperAudioName(const AName: string);
     procedure CreateAudioFile(const APath: string; const AData: TBytes);
+    procedure SetId(AId: Integer);
+    procedure SetCategory(const ACategory: string);
   public
     destructor Destroy; override;
 
@@ -71,7 +73,6 @@ type
     function GetHaveAnswerAudio: Boolean;
     function GetHaveBumperAudio: Boolean;
 
-    procedure SetId(AId: Integer);
     procedure SetQuestion(const AQuestion: string);
     procedure SetSuggestions(const ASuggestions: string);
     procedure SetAnswer(const AAnswer: string);
@@ -86,10 +87,9 @@ type
     procedure SetBumperAudioData(const AData: TBytes);
 
     function GetCategoryObj: ICategory;
-    procedure SetCategoryObj(ACategory: ICategory); {do not clone}
+    procedure SetCategoryObj(ACategory: ICategory);
 
     function GetCategory: string;
-    procedure SetCategory(const ACategory: string);
 
     procedure Save(const APath: string);
 
@@ -108,6 +108,7 @@ type
    private
     FShortieQuestions: TQuestionList;
     FFinalQuestions: TQuestionList;
+    function InnerCreateNewQuestion: IQuestion;
   public
     constructor Create;
     destructor Destroy; override;
@@ -118,6 +119,9 @@ type
     procedure Save(const APath: string);
     procedure RemoveShortieQuestion(AQuestion: IQuestion);
     procedure RemoveFinalQuestion(AQuestion: IQuestion);
+
+    function CreateNewShortieQuestion: IQuestion;
+    function CreateNewFinalQuestion: IQuestion;
   end;
 
   TFibbageQuestions = class
@@ -555,6 +559,8 @@ end;
 procedure TQuestionItem.SetCategoryObj(ACategory: ICategory);
 begin
   FCategory := ACategory;
+  SetId(FCategory.GetId);
+  SetCategory(FCategory.GetCategory);
 end;
 
 procedure TQuestionItem.SetDefaults;
@@ -731,6 +737,30 @@ begin
   inherited;
   FShortieQuestions := TList<IQuestion>.Create;
   FFinalQuestions := TList<IQuestion>.Create;
+end;
+
+function TQuestions.InnerCreateNewQuestion: IQuestion;
+begin
+  var res := TQuestionItem.Create;
+  res.SetDefaults;
+
+  Result := res;
+end;
+
+function TQuestions.CreateNewFinalQuestion: IQuestion;
+begin
+  Result := InnerCreateNewQuestion;
+  Result.SetQuestionType(qtFinal);
+
+  FFinalQuestions.Add(Result);
+end;
+
+function TQuestions.CreateNewShortieQuestion: IQuestion;
+begin
+  Result := InnerCreateNewQuestion;
+  Result.SetQuestionType(qtShortie);
+
+  FShortieQuestions.Add(Result);
 end;
 
 destructor TQuestions.Destroy;

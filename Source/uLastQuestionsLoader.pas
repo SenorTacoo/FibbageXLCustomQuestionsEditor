@@ -13,8 +13,8 @@ uses
 type
   TLastQuestionsLoader = class(TInterfacedObject, ILastQuestionProjects)
   strict private const
-    FIBBAGE_DIRECTORY = 'FibbageQE';
-    LASTS_FILE_NAME = 'FibbageQE.lasts';
+    FIBBAGE_DIRECTORY = 'FibbageCQE';
+    LASTS_FILE_NAME = '.lasts';
   private
     FPaths: TStringList;
     FUpdateCount: Integer;

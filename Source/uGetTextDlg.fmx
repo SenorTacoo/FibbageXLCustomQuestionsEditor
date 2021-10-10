@@ -46,7 +46,7 @@ object GetTextDlg: TGetTextDlg
       Size.Width = 222.000000000000000000
       Size.Height = 50.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = 'savetoolbuttonmultiview'
+      StyleLookup = 'ticktoolbuttonmultiview'
       TabOrder = 0
       Text = 'Ok'
     end
@@ -56,7 +56,7 @@ object GetTextDlg: TGetTextDlg
       Size.Width = 222.000000000000000000
       Size.Height = 50.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = 'stoptoolbuttonmultiview'
+      StyleLookup = 'canceltoolbuttonmultiview'
       TabOrder = 1
       Text = 'Cancel'
     end
