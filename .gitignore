@@ -1,0 +1,13 @@
+﻿Source/__history
+Source/bin
+Source/dcu
+Source/Win32
+Source/FibbageQE.dproj.local
+Source/FibbageQE.identcache
+Source/uMainForm.vlb
+Tests/__history
+*.local
+*.identcache
+*.dcu
+Tests/Win32
+Tests/bin

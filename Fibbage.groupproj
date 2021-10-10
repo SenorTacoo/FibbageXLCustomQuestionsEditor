@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{4EE1E3B9-8123-4DDA-AE0F-36F9350DB231}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="Source\FibbageQE.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="Tests\FibbageTests.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="FibbageQE">
+        <MSBuild Projects="Source\FibbageQE.dproj"/>
+    </Target>
+    <Target Name="FibbageQE:Clean">
+        <MSBuild Projects="Source\FibbageQE.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="FibbageQE:Make">
+        <MSBuild Projects="Source\FibbageQE.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="FibbageTests">
+        <MSBuild Projects="Tests\FibbageTests.dproj"/>
+    </Target>
+    <Target Name="FibbageTests:Clean">
+        <MSBuild Projects="Tests\FibbageTests.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="FibbageTests:Make">
+        <MSBuild Projects="Tests\FibbageTests.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="FibbageQE;FibbageTests"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="FibbageQE:Clean;FibbageTests:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="FibbageQE:Make;FibbageTests:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
