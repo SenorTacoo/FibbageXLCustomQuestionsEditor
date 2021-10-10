@@ -11,7 +11,7 @@ uses
   uCategoriesLoader in 'uCategoriesLoader.pas',
   uFibbageContent in 'uFibbageContent.pas',
   uSpringContainer in 'uSpringContainer.pas',
-  GameAudioManager in 'GameAudioManager.pas';
+  uRecordForm in 'uRecordForm.pas' {RecordForm};
 
 {$R *.res}
 

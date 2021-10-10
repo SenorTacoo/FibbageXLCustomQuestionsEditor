@@ -145,7 +145,10 @@
         <DCCReference Include="uCategoriesLoader.pas"/>
         <DCCReference Include="uFibbageContent.pas"/>
         <DCCReference Include="uSpringContainer.pas"/>
-        <DCCReference Include="GameAudioManager.pas"/>
+        <DCCReference Include="uRecordForm.pas">
+            <Form>RecordForm</Form>
+            <FormType>fmx</FormType>
+        </DCCReference>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
@@ -187,7 +190,7 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployFile LocalName="Win32\Debug\FibbageQE.exe" Configuration="Debug" Class="ProjectOutput">
+                <DeployFile LocalName="bin\Win32\Debug\FibbageQE.exe" Configuration="Debug" Class="ProjectOutput">
                     <Platform Name="Win32">
                         <RemoteName>FibbageQE.exe</RemoteName>
                         <Overwrite>true</Overwrite>

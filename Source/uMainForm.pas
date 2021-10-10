@@ -14,17 +14,17 @@ uses
   Data.Bind.ObjectScope, FMX.Platform, uQuestionsLoader, uSpringContainer, System.Math,
   FMX.Memo.Types, FMX.ScrollBox, FMX.Memo, FMX.Media,
   ACS_Classes, ACS_DXAudio, ACS_Vorbis, ACS_Converters, ACS_Wave,
-  NewACDSAudio, System.Generics.Collections;
+  NewACDSAudio, System.Generics.Collections, uRecordForm;
 
 type
+  TFibbageSoundType = (fstNone, fstQuestion, fstAnswer, fstBumper); // TODO
+
   TFrmMain = class(TForm)
     MultiView1: TMultiView;
     bMenu: TButton;
     bExportQuestions: TButton;
     bImportQuestions: TButton;
     alMain: TActionList;
-    sbLightStyle: TStyleBook;
-    sbDarkStyle: TStyleBook;
     ToolBar1: TToolBar;
     bMinimize: TButton;
     bMaximize: TButton;
@@ -34,7 +34,6 @@ type
     aWindowMaximize: TAction;
     aWindowNormal: TAction;
     lCaption: TLabel;
-    sbStatus: TStatusBar;
     tcEditTabs: TTabControl;
     tiShortieQuestions: TTabItem;
     tiEditSingleItem: TTabItem;
@@ -69,14 +68,9 @@ type
     sSingleItemPossibleAnswers: TSplitter;
     Splitter1: TSplitter;
     lySingleItemAudio: TLayout;
-    Splitter2: TSplitter;
-    Splitter3: TSplitter;
     pSingleItemAudio: TPanel;
     lSingleItemAudio: TLabel;
     MediaPlayer1: TMediaPlayer;
-    VorbisIn1: TVorbisIn;
-    StereoBalance1: TStereoBalance;
-    DSAudioOut1: TDSAudioOut;
     tiFinalQuestions: TTabItem;
     lyContent: TLayout;
     aGoToFinalQuestions: TChangeTabAction;
@@ -89,9 +83,6 @@ type
     bSingleItemQuestionAudio: TButton;
     bSingleItemCorrectAudio: TButton;
     bSingleItemBumperAudio: TButton;
-    bRecordQuestion: TButton;
-    Button2: TButton;
-    Button3: TButton;
     lySingleItemAdditionalInfo: TLayout;
     pSingleItemId: TPanel;
     lSingleItemId: TLabel;
@@ -103,6 +94,8 @@ type
     Splitter4: TSplitter;
     eSingleItemId: TEdit;
     eSingleItemCategory: TEdit;
+    sbLightStyle: TStyleBook;
+    sbDarkStyle: TStyleBook;
     procedure aWindowMinimizeExecute(Sender: TObject);
     procedure aWindowMaximizeExecute(Sender: TObject);
     procedure aWindowNormalExecute(Sender: TObject);
@@ -133,9 +126,14 @@ type
     procedure lvFinalQuestionsDblClick(Sender: TObject);
     procedure lvFinalQuestionsKeyDown(Sender: TObject; var Key: Word;
       var KeyChar: Char; Shift: TShiftState);
+    procedure DSAudioOut1Progress(Sender: TComponent);
+    procedure DSAudioOut1Done(Sender: TComponent);
+    procedure voMicSyncDone(Sender: TComponent);
+    procedure FormDestroy(Sender: TObject);
   private
     FMouseDownPt: TPoint;
     FAppCreated: Boolean;
+    FMic: TVorbisOut;
 //    FSoundMgr: TGameAudioManager;
 //    FContainer: TContainer;
 //    FLoader: IQuestionsLoader;
@@ -143,11 +141,15 @@ type
     FLastActiveTab: TTabItem;
     FSelectedQuestion: IQuestion;
     FSelectedCategory: ICategory;
+    FCurrentRecordingType: TFibbageSoundType;
     procedure OnContentInitialized;
     procedure OnContentError(const AError: string);
     procedure PopulateListView(AQuestions: TList<IQuestion>;
       AListView: TListView);
     procedure PlaySound(const APath: string);
+    procedure StartRecording(ASoundType: TFibbageSoundType);
+    procedure StopRecording;
+    procedure OnStartRecord;
   public
     { Public declarations }
   end;
@@ -244,6 +246,16 @@ begin
   MultiView1.HideMaster;
 end;
 
+procedure TFrmMain.DSAudioOut1Done(Sender: TComponent);
+begin
+//
+end;
+
+procedure TFrmMain.DSAudioOut1Progress(Sender: TComponent);
+begin
+//
+end;
+
 procedure TFrmMain.OnContentError(const AError: string);
 begin
   TThread.Synchronize(nil, procedure
@@ -296,6 +308,24 @@ begin
     end);
 end;
 
+procedure TFrmMain.OnStartRecord;
+begin
+//  TThread.Synchronize(nil,
+//  procedure
+//  begin
+//    case FCurrentRecordingType of
+//      fstQuestion:
+//        bSingleItemRecordQuestion.StyleLookup := 'stoprecordtoolbutton';
+//      fstAnswer:
+//        bSingleItemRecordAnswer.StyleLookup := 'stoprecordtoolbutton';
+//      fstBumper:
+//        bSingleItemRecordBumper.StyleLookup := 'stoprecordtoolbutton';
+//      else
+//        Assert(False, 'unknown recording type');
+//    end;
+//  end);
+end;
+
 procedure TFrmMain.Panel1KeyDown(Sender: TObject; var Key: Word;
   var KeyChar: Char; Shift: TShiftState);
 begin
@@ -329,25 +359,36 @@ end;
 
 procedure TFrmMain.bSingleItemQuestionAudioClick(Sender: TObject);
 begin
-  PlaySound(FSelectedQuestion.QuestionAudioPath);
+  var form := TRecordForm.Create(Self);
+  try
+    form.EditQuestionAudio(FSelectedQuestion);
+  finally
+    form.Free;
+  end;
 end;
 
 procedure TFrmMain.PlaySound(const APath: string);
 begin
-  DSAudioOut1.Stop(False);
-  VorbisIn1.FileName := APath;
-  DSAudioOut1.Run;
+//  DSAudioOut1.Stop(False);
+//  VorbisIn1.FileName := APath;
+//  DSAudioOut1.Run;
 end;
 
 procedure TFrmMain.FormCreate(Sender: TObject);
 begin
   tcQuestions.Visible := False;
   sDarkMode.IsChecked := TAppConfig.GetInstance.DarkModeEnabled;
-  
+//  voMic.OnStart := OnStartRecord;
+
   tcEditTabs.ActiveTab := tiQuestions;
   tcQuestions.ActiveTab := tiShortieQuestions;
   MultiView1.ShowMaster;
   FAppCreated := True;
+end;
+
+procedure TFrmMain.FormDestroy(Sender: TObject);
+begin
+//  voMic.Stop(False);
 end;
 
 procedure TFrmMain.FormResize(Sender: TObject);
@@ -488,6 +529,17 @@ begin
     TAppConfig.GetInstance.DarkModeEnabled := sDarkMode.IsChecked;
 end;
 
+procedure TFrmMain.StartRecording(ASoundType: TFibbageSoundType);
+begin
+  FCurrentRecordingType := ASoundType;
+//  voMic.Run;
+end;
+
+procedure TFrmMain.StopRecording;
+begin
+//  voMic.Stop;
+end;
+
 procedure TFrmMain.ToolBar1MouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Single);
 begin
@@ -510,6 +562,25 @@ begin
     Left := Left + (Round(X) - FMouseDownPt.X);
     Top := Top + (Round(Y) - FMouseDownPt.Y);
   end;
+end;
+
+procedure TFrmMain.voMicSyncDone(Sender: TComponent);
+begin
+//  TThread.Synchronize(nil,
+//  procedure
+//  begin
+//    case FCurrentRecordingType of
+//      fstQuestion:
+//        bSingleItemRecordQuestion.StyleLookup := 'mictoolbutton';
+//      fstAnswer:
+//        bSingleItemRecordAnswer.StyleLookup := 'mictoolbutton';
+//      fstBumper:
+//        bSingleItemRecordBumper.StyleLookup := 'mictoolbutton';
+//      else
+//        Assert(False, 'unknown recording type');
+//    end;
+//    FCurrentRecordingType := fstNone;
+//  end);
 end;
 
 end.
