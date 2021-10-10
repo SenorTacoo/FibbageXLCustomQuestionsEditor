@@ -210,7 +210,6 @@ type
     bSaveQuestionChanges: TButton;
     aSaveQuestionChanges: TAction;
     aCancelQuestionChanges: TAction;
-    aSaveProjectChanges: TAction;
     miEditProject: TMenuItem;
     miActivateProject: TMenuItem;
     aSetProjectAsActive: TAction;
@@ -246,6 +245,7 @@ type
     aGetGamePath: TAction;
     Layout3: TLayout;
     bRefreshQuestionId: TButton;
+    aSaveProjectAndClose: TAction;
     procedure lDarkModeClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormResize(Sender: TObject);
@@ -292,6 +292,8 @@ type
     procedure bSettingsClick(Sender: TObject);
     procedure aGetGamePathExecute(Sender: TObject);
     procedure bRefreshQuestionIdClick(Sender: TObject);
+    procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+    procedure aSaveProjectAndCloseExecute(Sender: TObject);
   private
     FAppCreated: Boolean;
     FChangingTab: Boolean;
@@ -363,6 +365,7 @@ type
     procedure OnActivateEnd;
     procedure OnActivateStart;
     function GetFibbagePath(out APath: string): Boolean;
+    procedure OnPostSaveClose;
   public
     { Public declarations }
   end;
@@ -887,6 +890,17 @@ begin
   GoToHome;
 end;
 
+procedure TFrmMain.aSaveProjectAndCloseExecute(Sender: TObject);
+begin
+  TAsyncAction.Create(OnPreSave, OnPostSaveClose, SaveProc).Start;
+end;
+
+procedure TFrmMain.OnPostSaveClose;
+begin
+  OnPostSave;
+  Close;
+end;
+
 procedure TFrmMain.aSaveProjectAsExecute(Sender: TObject);
 var
   path: string;
@@ -1367,6 +1381,7 @@ begin
   aEditProjectName.Enabled := Assigned(FLastClickedConfigurationToEdit) and (selCnt = 1);
   aInitializeProject.Enabled := selCnt > 0;
   aOpenInWindowsExplorer.Visible := selCnt > 0;
+  aInitializeProject.Enabled := selCnt = 1;
   aSetProjectAsActive.Visible := selCnt > 0;
   aSetProjectAsActive.Enabled := selCnt = 1;
   MenuItem1.Visible := aOpenInWindowsExplorer.Visible or aSetProjectAsActive.Visible;
@@ -1615,6 +1630,25 @@ begin
     form.EditQuestionAudio(FSelectedQuestion);
   finally
     form.Free;
+  end;
+end;
+
+procedure TFrmMain.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+begin
+  if FQuestionsChanged then
+  begin
+    var res := False;
+    TDialogService.MessageDialog('Save changes?', TMsgDlgType.mtInformation,
+      [TMsgDlgBtn.mbYes, TMsgDlgBtn.mbNo], TMsgDlgBtn.mbCancel, 0,
+      procedure (const AResult: TModalResult)
+      begin
+        FQuestionsChanged := False;
+        case AResult of
+          mrYes: aSaveProjectAndClose.Execute;
+          mrNo: res := True;
+        end;
+      end);
+    CanClose := res;
   end;
 end;
 
