@@ -6,44 +6,55 @@ uses
   System.Generics.Collections;
 
 type
+  IQuestion = interface;
+
   IFibbagePathChecker = interface
     ['{D91F90A7-5AE3-44AF-BC55-60E0A89974BD}']
     function IsValid(const APath: string): Boolean;
   end;
 
   ICategory = interface
-    ['{98F51C59-A8D6-41DB-A4C0-33F3FB48F475}']
+    ['{A0359347-2ED4-4141-88D4-F83BD6BEA2B4}']
+    function Id: Integer;
+    function Category: string;
   end;
 
   ICategories = interface
     ['{705D1649-BB15-41E4-BBFE-8DB36E16C3F8}']
+//    function GetIds: TArray<Cardinal>;
+//    function GetCategories: TArray<string>;
+    function Count: Integer;
+    function Category(AIdx: Integer): ICategory;
   end;
 
   IFibbageCategories = interface
     ['{C079C47F-9F11-4CEA-B404-FC1393155440}']
-    function ShortieCategories: ICategories;
-    function FinalCategories: ICategories;
-  end;
-
-  ICategoriesLoader = interface
-   ['{A16636D8-7A1F-4160-84E9-F9883A20CA73}']
-
+//    function ShortieCategories: ICategories;
+//    function FinalCategories: ICategories;
+    function GetShortieCategory(AQuestion: IQuestion): ICategory;
+    function GetFinalCategory(AQuestion: IQuestion): ICategory;
     procedure LoadCategories(const AContentDir: string);
-    function Categories: IFibbageCategories;
   end;
+
+//  ICategoriesLoader = interface
+//   ['{A16636D8-7A1F-4160-84E9-F9883A20CA73}']
+//
+//    procedure LoadCategories(const AContentDir: string);
+//    function Categories: IFibbageCategories;
+//  end;
 
   IQuestion = interface
    ['{EE283E65-E86A-4FCF-952F-4C9FAC7CBD69}']
+    function Id: Integer;
+    function Question: string;
+    function Suggestions: string;
+    function Answer: string;
+    function AlternateSpelling: string;
+    function QuestionAudioPath: string;
+    function CorrectItemAudioPath: string;
+    function BumperAudioPath: string;
 
-   function Question: string;
-   function Suggestions: string;
-   function Answer: string;
-   function AlternateSpelling: string;
-   function QuestionAudioPath: string;
-   function CorrectItemAudioPath: string;
-   function BumperAudioPath: string;
-
-   procedure Save(const APath: string);
+    procedure Save(const APath: string);
   end;
 
 //  IQuestions = interface
@@ -70,6 +81,8 @@ type
   IFibbageContent = interface
     ['{C29008F3-5F9B-4053-8947-792D2430F7AE}']
     function Questions: IFibbageQuestions;
+    function Categories: IFibbageCategories;
+
     procedure Initialize(const AContentPath: string; AOnContentInitialized: TOnContentInitialized; AOnContentError: TOnContentError);
     procedure Save(const APath: string);
   end;

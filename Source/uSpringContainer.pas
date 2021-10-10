@@ -32,7 +32,8 @@ initialization
 
   GlobalContainer.RegisterType<IFibbagePathChecker, TFibbagePathChecker>;
   GlobalContainer.RegisterType<IQuestionsLoader, TQuestionsLoader>;
-  GlobalContainer.RegisterType<ICategoriesLoader, TCategoriesLoader>;
+  GlobalContainer.RegisterType<ICategories, TCategories>;
+  GlobalContainer.RegisterType<IFibbageCategories, TFibbageCategories>;
   GlobalContainer.RegisterType<IFibbageContent, TFibbageContent>;
   GlobalContainer.Build;
 

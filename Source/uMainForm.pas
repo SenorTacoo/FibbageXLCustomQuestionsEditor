@@ -20,8 +20,8 @@ type
   TFrmMain = class(TForm)
     MultiView1: TMultiView;
     bMenu: TButton;
-    bSettings: TButton;
-    bHome: TButton;
+    bExportQuestions: TButton;
+    bImportQuestions: TButton;
     alMain: TActionList;
     sbLightStyle: TStyleBook;
     sbDarkStyle: TStyleBook;
@@ -92,6 +92,17 @@ type
     bRecordQuestion: TButton;
     Button2: TButton;
     Button3: TButton;
+    lySingleItemAdditionalInfo: TLayout;
+    pSingleItemId: TPanel;
+    lSingleItemId: TLabel;
+    pSingleItemCategory: TPanel;
+    lSingleItemCategory: TLabel;
+    lySingleItemBase: TLayout;
+    lySingleItemId: TLayout;
+    lySingleItemCategory: TLayout;
+    Splitter4: TSplitter;
+    eSingleItemId: TEdit;
+    eSingleItemCategory: TEdit;
     procedure aWindowMinimizeExecute(Sender: TObject);
     procedure aWindowMaximizeExecute(Sender: TObject);
     procedure aWindowNormalExecute(Sender: TObject);
@@ -104,8 +115,8 @@ type
     procedure FormCreate(Sender: TObject);
     procedure lyGameDirectoryPathClick(Sender: TObject);
     procedure FormResize(Sender: TObject);
-    procedure bHomeClick(Sender: TObject);
-    procedure bSettingsClick(Sender: TObject);
+    procedure bImportQuestionsClick(Sender: TObject);
+    procedure bExportQuestionsClick(Sender: TObject);
     procedure lvEditAllItemsUpdateObjects(const Sender: TObject;
       const AItem: TListViewItem);
     procedure lvEditAllItemsKeyDown(Sender: TObject; var Key: Word;
@@ -131,6 +142,7 @@ type
     FContent: IFibbageContent;
     FLastActiveTab: TTabItem;
     FSelectedQuestion: IQuestion;
+    FSelectedCategory: ICategory;
     procedure OnContentInitialized;
     procedure OnContentError(const AError: string);
     procedure PopulateListView(AQuestions: TList<IQuestion>;
@@ -163,6 +175,8 @@ begin
   mSingleItemAnswer.Text := FSelectedQuestion.Answer;
   mSingleItemAlternateSpelling.Text :=  FSelectedQuestion.AlternateSpelling.Replace(',', ', ');
   mSingleItemSuggestions.Text := FSelectedQuestion.Suggestions.Replace(',', ', ');
+  eSingleItemId.Text := FSelectedCategory.Id.ToString;
+  eSingleItemCategory.Text := FSelectedCategory.Category;
   bSingleItemQuestionAudio.Enabled := (not FSelectedQuestion.QuestionAudioPath.IsEmpty) and FileExists(FSelectedQuestion.QuestionAudioPath);
   bSingleItemCorrectAudio.Enabled := (not FSelectedQuestion.CorrectItemAudioPath.IsEmpty) and FileExists(FSelectedQuestion.CorrectItemAudioPath);
   bSingleItemBumperAudio.Enabled := (not FSelectedQuestion.BumperAudioPath.IsEmpty) and FileExists(FSelectedQuestion.BumperAudioPath);
@@ -187,7 +201,7 @@ begin
   bMaximize.Action := aWindowMaximize;
 end;
 
-procedure TFrmMain.bHomeClick(Sender: TObject);
+procedure TFrmMain.bImportQuestionsClick(Sender: TObject);
 var
   dlg: IFMXDialogServiceAsync;
   rootDir: string;
@@ -252,6 +266,15 @@ begin
       lvItem.Data['Suggestions'] := item.Suggestions;
       lvItem.Data['Answer'] := item.Answer;
       lvItem.Data['ItemIdx'] := AQuestions.IndexOf(item);
+      if AListView = lvEditAllItems then
+        lvItem.Data['CategoryDetails'] := Format('Id: %d, Category: %s', [
+          FContent.Categories.GetShortieCategory(item).Id,
+          FContent.Categories.GetShortieCategory(item).Category])
+      else
+        lvItem.Data['CategoryDetails'] := Format('Id: %d, Category: %s', [
+          FContent.Categories.GetFinalCategory(item).Id,
+          FContent.Categories.GetFinalCategory(item).Category])
+
     end;
   finally
     AListView.EndUpdate;
@@ -280,7 +303,7 @@ begin
     aGoToAllQuestions.Execute;
 end;
 
-procedure TFrmMain.bSettingsClick(Sender: TObject);
+procedure TFrmMain.bExportQuestionsClick(Sender: TObject);
 begin
   var rootDir := TAppConfig.GetInstance.LastEditPath;
   var gameDir: string;
@@ -345,6 +368,7 @@ procedure TFrmMain.lvEditAllItemsDblClick(Sender: TObject);
 begin
   var selectedItem := lvEditAllItems.Items[lvEditAllItems.ItemIndex];
   FSelectedQuestion := FContent.Questions.ShortieQuestions[selectedItem.Data['ItemIdx'].AsType<Integer>];
+  FSelectedCategory := FContent.Categories.GetShortieCategory(FSelectedQuestion);
   aGoToQuestionDetails.Execute;
 end;
 
@@ -355,6 +379,7 @@ begin
   begin
     var selectedItem := lvEditAllItems.Items[lvEditAllItems.ItemIndex];
     FSelectedQuestion := FContent.Questions.ShortieQuestions[selectedItem.Data['ItemIdx'].AsType<Integer>];
+    FSelectedCategory := FContent.Categories.GetShortieCategory(FSelectedQuestion);
     aGoToQuestionDetails.Execute;
   end;
 end;
@@ -367,33 +392,41 @@ begin
   var qDrawable := AItem.View.FindDrawable('Question') as TListItemText;
   var aDrawable := AItem.View.FindDrawable('Answer') as TListItemText;
   var sDrawable := AItem.View.FindDrawable('Suggestions') as TListItemText;
+  var cdDrawable := AItem.View.FindDrawable('CategoryDetails') as TListItemText;
 
-  if (not Assigned(qDrawable)) or (not Assigned(aDrawable)) or (not Assigned(sDrawable)) then
+  if (not Assigned(qDrawable)) or (not Assigned(aDrawable)) or (not Assigned(sDrawable)) or (not Assigned(cdDrawable)) then
     Exit;
 
   baseLV.Canvas.Font.Assign(qDrawable.Font);
+
+  cdDrawable.Height := baseLV.Canvas.TextHeight('Yy');
+  cdDrawable.PlaceOffset.Y := 3;
+  cdDrawable.PlaceOffset.X := 5;
+
   var R := RectF(0, 0, baseLV.Width - baseLV.ItemSpaces.Left - baseLV.ItemSpaces.Right, 10000);
   baseLV.Canvas.MeasureText(R, AItem.Data['Question'].ToString, True, [], qDrawable.TextAlign, qDrawable.TextVertAlign);
   qDrawable.Height := R.Height;
-  qDrawable.PlaceOffset.Y := baseLV.Canvas.TextHeight('Yy');
+  qDrawable.PlaceOffset.Y := cdDrawable.PlaceOffset.Y + cdDrawable.Height + 10;
 
   aDrawable.Height := baseLV.Canvas.TextHeight('Yy');
-  aDrawable.PlaceOffset.Y := qDrawable.PlaceOffset.Y + qDrawable.Height;
+  aDrawable.PlaceOffset.Y := qDrawable.PlaceOffset.Y + qDrawable.Height + 5;
 
   sDrawable.Height := baseLV.Canvas.TextHeight('Yy');
-  sDrawable.PlaceOffset.Y := aDrawable.PlaceOffset.Y + aDrawable.Height;
+  sDrawable.PlaceOffset.Y := aDrawable.PlaceOffset.Y + aDrawable.Height + 5;
 
   qDrawable.Width := baseLV.Width;
   aDrawable.Width := baseLV.Width;
   sDrawable.Width := baseLV.Width;
+  cdDrawable.Width := baseLV.Width - cdDrawable.PlaceOffset.X;
 
-  AItem.Height := Round(sDrawable.PlaceOffset.Y + sDrawable.Height + baseLV.Canvas.TextHeight('Yy'));
+  AItem.Height := Round(sDrawable.PlaceOffset.Y + sDrawable.Height + 6);
 end;
 
 procedure TFrmMain.lvFinalQuestionsDblClick(Sender: TObject);
 begin
   var selectedItem := lvFinalQuestions.Items[lvFinalQuestions.ItemIndex];
   FSelectedQuestion := FContent.Questions.FinalQuestions[selectedItem.Data['ItemIdx'].AsType<Integer>];
+  FSelectedCategory := FContent.Categories.GetFinalCategory(FSelectedQuestion);
   aGoToQuestionDetails.Execute;
 end;
 
@@ -404,6 +437,7 @@ begin
   begin
     var selectedItem := lvFinalQuestions.Items[lvFinalQuestions.ItemIndex];
     FSelectedQuestion := FContent.Questions.FinalQuestions[selectedItem.Data['ItemIdx'].AsType<Integer>];
+    FSelectedCategory := FContent.Categories.GetFinalCategory(FSelectedQuestion);
     aGoToQuestionDetails.Execute;
   end;
 end;

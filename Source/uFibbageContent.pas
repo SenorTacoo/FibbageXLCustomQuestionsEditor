@@ -11,12 +11,14 @@ uses
 type
   TFibbageContent = class(TInterfacedObject, IFibbageContent)
   private
-    FCategoriesLoader: ICategoriesLoader;
+    FCategories: IFibbageCategories;
     FQuestionsLoader: IQuestionsLoader;
   public
-    constructor Create(ACategoriesLoader: ICategoriesLoader; AQuestionsLoader: IQuestionsLoader);
+    constructor Create(ACategories: IFibbageCategories; AQuestionsLoader: IQuestionsLoader);
 
     function Questions: IFibbageQuestions;
+    function Categories: IFibbageCategories;
+
     procedure Initialize(const AContentPath: string; AOnContentInitialized: TOnContentInitialized; AOnContentError: TOnContentError);
     procedure Save(const APath: string);
   end;
@@ -25,11 +27,16 @@ implementation
 
 { TFibbageContent }
 
-constructor TFibbageContent.Create(ACategoriesLoader: ICategoriesLoader;
+function TFibbageContent.Categories: IFibbageCategories;
+begin
+  Result := FCategories;
+end;
+
+constructor TFibbageContent.Create(ACategories: IFibbageCategories;
   AQuestionsLoader: IQuestionsLoader);
 begin
-  inherited Create;    // kategorie ogarnąć i korzystać z contentu
-  FCategoriesLoader := ACategoriesLoader;
+  inherited Create;
+  FCategories := ACategories;
   FQuestionsLoader := AQuestionsLoader;
 end;
 
@@ -40,7 +47,7 @@ begin
   procedure
   begin
     try
-      FCategoriesLoader.LoadCategories(AContentPath);
+      FCategories.LoadCategories(AContentPath);
       FQuestionsLoader.LoadQuestions(AContentPath);
       if Assigned(AOnContentInitialized) then
         AOnContentInitialized;

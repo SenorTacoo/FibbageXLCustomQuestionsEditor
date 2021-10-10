@@ -48,6 +48,7 @@ type
 
     procedure PrepareEmptyValues;
   public
+    function Id: Integer;
     function Question: string;
     function Suggestions: string;
     function Answer: string;
@@ -254,6 +255,11 @@ begin
   for var audio in FAudios do
     if SameText(ChangeFileExt(ExtractFileName(audio.FPath), ''), audioName) then
       Exit(audio.Path);
+end;
+
+function TQuestionItem.Id: Integer;
+begin
+  Result := FId;
 end;
 
 procedure TQuestionItem.PrepareEmptyValues;
