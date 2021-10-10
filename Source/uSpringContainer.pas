@@ -10,6 +10,7 @@ uses
   uPathChecker,
   uLastQuestionsLoader,
   uContentConfiguration,
+  uProjectActivator,
   uFibbageContent;
 
 var
@@ -28,6 +29,7 @@ initialization
   GlobalContainer.RegisterType<IFibbageContent, TFibbageContent>;
   GlobalContainer.RegisterType<ILastQuestionProjects, TLastQuestionsLoader>;
   GlobalContainer.RegisterType<IContentConfiguration, TContentConfiguration>;
+  GlobalContainer.RegisterType<IProjectActivator, TProjectActivator>;
   GlobalContainer.Build;
 
 finalization

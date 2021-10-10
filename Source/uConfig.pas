@@ -32,6 +32,8 @@ type
     function GetLogService: string;
     procedure SetLogBroker(const Value: string);
     procedure SetLogService(const Value: string);
+    function GetFibbagePath: string;
+    procedure SetFibbagePath(const Value: string);
   public
     constructor Create;
     destructor Destroy; override;
@@ -42,6 +44,7 @@ type
     property InputDeviceName: string read GetInputDeviceName write SetInputDeviceName;
     property LogBroker: string read GetLogBroker write SetLogBroker;
     property LogService: string read GetLogService write SetLogService;
+    property FibbagePath: string read GetFibbagePath write SetFibbagePath;
   end;
 
 implementation
@@ -69,6 +72,11 @@ end;
 function TAppConfig.GetDarkModeEnabled: Boolean;
 begin
   Result := FIniFile.ReadBool('Style', 'DarkMode', False);
+end;
+
+function TAppConfig.GetFibbagePath: string;
+begin
+  Result := FIniFile.ReadString('General', 'FibbagePath', '');
 end;
 
 function TAppConfig.GetInputDeviceName: string;
@@ -106,6 +114,11 @@ end;
 procedure TAppConfig.SetDarkModeEnabled(const Value: Boolean);
 begin
   FIniFile.WriteBool('Style', 'DarkMode', Value);
+end;
+
+procedure TAppConfig.SetFibbagePath(const Value: string);
+begin
+  FIniFile.WriteString('General', 'FibbagePath', Value);
 end;
 
 procedure TAppConfig.SetInputDeviceName(const Value: string);

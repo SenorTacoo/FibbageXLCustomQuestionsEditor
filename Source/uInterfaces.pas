@@ -93,6 +93,9 @@ type
     function Questions: IFibbageQuestions;
   end;
 
+  TSaveOption = (soDoNotSaveConfig);
+  TSaveOptions = set of TSaveOption;
+
   IContentConfiguration = interface
     ['{B756232F-2FC1-4BD9-8CDB-76D33AC44D4B}']
     function Initialize(const APath: string): Boolean;
@@ -116,7 +119,9 @@ type
 
     procedure Initialize(AConfiguration: IContentConfiguration);
 
-    procedure Save;
+    procedure Save; overload;
+    procedure Save(const APath: string; ASaveOptions: TSaveOptions = []); overload;
+
     procedure AddShortieQuestion;
     procedure AddFinalQuestion;
     procedure RemoveShortieQuestion(AQuestion: IQuestion);
@@ -134,6 +139,11 @@ type
     function Count: Integer;
     procedure BeginUpdate;
     procedure EndUpdate;
+  end;
+
+  IProjectActivator = interface
+    ['{A598EA48-727C-4EAB-8E8D-EB38C5ABDC47}']
+    procedure Activate(AConfig: IContentConfiguration; const APath: string);
   end;
 
 

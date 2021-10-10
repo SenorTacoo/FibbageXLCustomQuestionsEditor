@@ -224,6 +224,9 @@ type
     bCancelProjectChanges: TButton;
     aSaveProjectChanges: TAction;
     aCancelProjectChanges: TAction;
+    miEditProject: TMenuItem;
+    miActivateProject: TMenuItem;
+    aSetProjectAsActive: TAction;
     procedure lDarkModeClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormResize(Sender: TObject);
@@ -262,6 +265,7 @@ type
     procedure aSaveProjectChangesExecute(Sender: TObject);
     procedure aCancelProjectChangesExecute(Sender: TObject);
     procedure mDisableEnter(Sender: TObject; var Key: Word; var KeyChar: Char; Shift: TShiftState);
+    procedure aSetProjectAsActiveExecute(Sender: TObject);
   private
     FAppCreated: Boolean;
     FChangingTab: Boolean;
@@ -270,6 +274,7 @@ type
     FSelectedQuestion: IQuestion;
     FSelectedCategory: ICategory;
     FSelectedConfiguration: IContentConfiguration;
+    FActiveConfiguration: IContentConfiguration;
 
     FLastQuestionProjects: ILastQuestionProjects;
 
@@ -327,6 +332,9 @@ type
     procedure OnRemoveProjectStart;
     procedure OnRemoveProject;
     procedure OnRemoveProjectFullWipe;
+    procedure ActivateProjectProc;
+    procedure OnActivateEnd;
+    procedure OnActivateStart;
   public
     { Public declarations }
   end;
@@ -777,6 +785,44 @@ begin
   GoToAllQuestions;
 end;
 
+procedure TFrmMain.aSetProjectAsActiveExecute(Sender: TObject);
+var
+  path: string;
+begin
+  if TAppConfig.GetInstance.FibbagePath.IsEmpty then
+    if SelectDirectory('Select FibbageXL directory', '', path) then
+      TAppConfig.GetInstance.FibbagePath := path // todo is valid path
+    else
+      Exit;
+
+  for var item in FProjectVisItems do
+    if item.Selected then
+    begin
+      FActiveConfiguration := item.OrgConfiguration;
+      Break;
+    end;
+
+  TAsyncAction.Create(OnActivateStart, OnActivateEnd, ActivateProjectProc).Start;
+end;
+
+procedure TFrmMain.OnActivateStart;
+begin
+  pLoading.Visible := True;
+  aiContentLoading.Enabled := True;
+end;
+
+procedure TFrmMain.OnActivateEnd;
+begin
+  pLoading.Visible := False;
+  aiContentLoading.Enabled := False;
+end;
+
+procedure TFrmMain.ActivateProjectProc;
+begin
+  var activator := GlobalContainer.Resolve<IProjectActivator>;
+  activator.Activate(FActiveConfiguration, System.IOUtils.TPath.Combine(TAppConfig.GetInstance.FibbagePath, 'content'));
+end;
+
 procedure TFrmMain.OnPreSave;
 begin
   pLoading.Visible := True;
@@ -1150,7 +1196,9 @@ begin
   aEditProjectDetails.Enabled := Assigned(FLastClickedConfigurationToEdit) and (selCnt = 1);
   aInitializeProject.Enabled := selCnt > 0;
   aOpenInWindowsExplorer.Visible := selCnt > 0;
-  MenuItem1.Visible := aOpenInWindowsExplorer.Visible;
+  aSetProjectAsActive.Visible := selCnt > 0;
+  aSetProjectAsActive.Enabled := selCnt = 1;
+  MenuItem1.Visible := aOpenInWindowsExplorer.Visible or aSetProjectAsActive.Visible;
 end;
 
 procedure TFrmMain.pmQuestionsPopup(Sender: TObject);

@@ -18,13 +18,14 @@ type
     FConfig: IContentConfiguration;
     FCategories: IFibbageCategories;
     FQuestionsLoader: IQuestionsLoader;
-    procedure SaveManifest;
+    procedure SaveManifest(const APath: string);
     procedure PrepareBackup(const APath: string);
     procedure RemoveBackup(const APath: string);
     procedure RestoreBackup(const APath: string);
-    procedure PostSaveFailed;
-    procedure PostSaveSuccessful;
-    procedure PreSave;
+    procedure PostSaveFailed(const APath: string);
+    procedure PostSaveSuccessful(const APath: string);
+    procedure PreSave(const APath: string);
+    procedure InnerSave(const APath: string; ASaveOptions: TSaveOptions = []);
   public
     constructor Create(ACategories: IFibbageCategories; AQuestionsLoader: IQuestionsLoader);
 
@@ -34,7 +35,8 @@ type
 
     procedure Initialize(AConfiguration: IContentConfiguration);
 
-    procedure Save;
+    procedure Save; overload;
+    procedure Save(const APath: string; ASaveOptions: TSaveOptions = []); overload;
 
     procedure AddShortieQuestion;
     procedure AddFinalQuestion;
@@ -138,44 +140,49 @@ begin
   end;
 end;
 
-procedure TFibbageContent.PreSave;
+procedure TFibbageContent.PreSave(const APath: string);
 begin
-  PrepareBackup(FConfig.GetPath);
+  PrepareBackup(APath);
 end;
 
-procedure TFibbageContent.PostSaveSuccessful;
+procedure TFibbageContent.PostSaveSuccessful(const APath: string);
 begin
-  RemoveBackup(FConfig.GetPath);
+  RemoveBackup(APath);
 end;
 
-procedure TFibbageContent.PostSaveFailed;
+procedure TFibbageContent.PostSaveFailed(const APath: string);
 begin
-  RestoreBackup(FConfig.GetPath);
+  RestoreBackup(APath);
 end;
 
-procedure TFibbageContent.Save;
+procedure TFibbageContent.InnerSave(const APath: string; ASaveOptions: TSaveOptions = []);
 begin
-  var path := FConfig.GetPath;
-  PreSave;
+  PreSave(APath);
   try
-    FConfig.Save(path);
-    FQuestionsLoader.Questions.Save(path);
-    FCategories.Save(path);
-    SaveManifest;
+    if not (soDoNotSaveConfig in ASaveOptions) then
+      FConfig.Save(APath);
+    FQuestionsLoader.Questions.Save(APath);
+    FCategories.Save(APath);
+    SaveManifest(APath);
 
-    PostSaveSuccessful;
+    PostSaveSuccessful(APath);
   except
     on E: Exception do
     begin
       LogE('save exception %s/%s', [E.Message, E.ClassName]);
-      PostSaveFailed;
+      PostSaveFailed(APath);
     end;
   end;
 end;
 
-procedure TFibbageContent.SaveManifest;
+procedure TFibbageContent.Save;
 begin
-  var fs := TFileStream.Create(TPath.Combine(FConfig.GetPath, 'manifest.jet'), fmCreate);
+  InnerSave(FConfig.GetPath);
+end;
+
+procedure TFibbageContent.SaveManifest(const APath: string);
+begin
+  var fs := TFileStream.Create(TPath.Combine(APath, 'manifest.jet'), fmCreate);
   var sw := TStreamWriter.Create(fs);
   try
     sw.WriteLine('{ "id":"Main", "name":"Main Content Pack", "types":["fibbageshortie","finalfibbage"] }');
@@ -183,6 +190,11 @@ begin
     sw.Free;
     fs.Free;
   end;
+end;
+
+procedure TFibbageContent.Save(const APath: string; ASaveOptions: TSaveOptions = []);
+begin
+  InnerSave(APath, ASaveOptions);
 end;
 
 end.

@@ -298,13 +298,16 @@ end;
 
 procedure TCategories.Save(const APath, AName: string);
 begin
-  SetLength(FContent, FContentList.Count);
-  for var idx := 0 to FContentList.Count - 1 do
+  if FContentListInitialized then
   begin
-    var item := TCategoryData.Create;
-    item.SetId((FContentList[idx] as ICategory).GetId);
-    item.SetCategory((FContentList[idx] as ICategory).GetCategory);
-    FContent[idx] := item;
+    SetLength(FContent, FContentList.Count);
+    for var idx := 0 to FContentList.Count - 1 do
+    begin
+      var item := TCategoryData.Create;
+      item.SetId((FContentList[idx] as ICategory).GetId);
+      item.SetCategory((FContentList[idx] as ICategory).GetCategory);
+      FContent[idx] := item;
+    end;
   end;
 
   InitializeContentList;
