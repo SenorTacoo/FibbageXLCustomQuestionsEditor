@@ -24,27 +24,25 @@ type
 
   ICategories = interface
     ['{705D1649-BB15-41E4-BBFE-8DB36E16C3F8}']
-//    function GetIds: TArray<Cardinal>;
-//    function GetCategories: TArray<string>;
     function Count: Integer;
     function Category(AIdx: Integer): ICategory;
+    procedure Add(ACategory: ICategory);
+    procedure Delete(AId: Integer);
   end;
 
   IFibbageCategories = interface
     ['{C079C47F-9F11-4CEA-B404-FC1393155440}']
-//    function ShortieCategories: ICategories;
-//    function FinalCategories: ICategories;
     function GetShortieCategory(AQuestion: IQuestion): ICategory;
     function GetFinalCategory(AQuestion: IQuestion): ICategory;
     procedure LoadCategories(const AContentDir: string);
+    function GetAvailableId: Word;
+    function CreateNewShortieCategory: Integer;
+    function CreateNewFinalCategory: Integer;
+    procedure RemoveShortieCategory(AQuestion: IQuestion);
+    procedure RemoveFinalCategory(AQuestion: IQuestion);
   end;
 
-//  ICategoriesLoader = interface
-//   ['{A16636D8-7A1F-4160-84E9-F9883A20CA73}']
-//
-//    procedure LoadCategories(const AContentDir: string);
-//    function Categories: IFibbageCategories;
-//  end;
+  TQuestionType = (qtShortie, qtFinal);
 
   IQuestion = interface
    ['{EE283E65-E86A-4FCF-952F-4C9FAC7CBD69}']
@@ -66,19 +64,18 @@ type
     procedure SetAnswerAudioPath(const AAudioPath: string);
     procedure SetBumperAudioPath(const AAudioPath: string);
 
+    function GetQuestionType: TQuestionType;
+    procedure SetQuestionType(AQuestionType: TQuestionType);
     procedure Save(const APath: string);
   end;
-
-//  IQuestions = interface
-//    ['{1BBD0C2A-1D44-44FA-8085-C56D8A7000D9}']
-//
-//  end;
 
   IFibbageQuestions = interface
     ['{E703044F-3534-4F18-892D-99D381446C1C}']
     function ShortieQuestions: TList<IQuestion>;
     function FinalQuestions: TList<IQuestion>;
     procedure Save(const APath: string);
+    procedure RemoveShortieQuestion(AQuestion: IQuestion);
+    procedure RemoveFinalQuestion(AQuestion: IQuestion);
   end;
 
   IQuestionsLoader = interface
@@ -98,6 +95,10 @@ type
 
     procedure Initialize(const AContentPath: string; AOnContentInitialized: TOnContentInitialized; AOnContentError: TOnContentError);
     procedure Save(const APath: string);
+    procedure AddShortieQuestion;
+    procedure AddFinalQuestion;
+    procedure RemoveShortieQuestion(AQuestion: IQuestion);
+    procedure RemoveFinalQuestion(AQuestion: IQuestion);
   end;
 
   ILastQuestionProjects = interface

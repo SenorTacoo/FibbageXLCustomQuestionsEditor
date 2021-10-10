@@ -43,11 +43,12 @@ type
     constructor Create;
     destructor Destroy; override;
 
-//    function GetIds: TArray<Cardinal>;
-//    function GetCategories: TArray<string>;
     function Count: Integer;
     function Category(AIdx: Integer): ICategory;
     function EpisodeId: Integer;
+
+    procedure Add(ACategory: ICategory);
+    procedure Delete(AId: Integer);
   end;
 
   TFibbageCategories = class(TInterfacedObject, IFibbageCategories)
@@ -58,6 +59,8 @@ type
     procedure LoadFinalCategories;
     procedure LoadShortieCategories;
     function GetCategories(const APath: string): TCategories;
+    function CreateNewCategory: ICategory;
+    function GetAvailableId: Word;
   public
     constructor Create;
     destructor Destroy; override;
@@ -69,54 +72,39 @@ type
     function GetFinalCategory(AQuestion: IQuestion): ICategory;
 
     procedure LoadCategories(const AContentDir: string);
+    function CreateNewShortieCategory: Integer;
+    function CreateNewFinalCategory: Integer;
+    procedure RemoveShortieCategory(AQuestion: IQuestion);
+    procedure RemoveFinalCategory(AQuestion: IQuestion);
   end;
 
 implementation
-
-//{ TCategoriesLoader }
-//
-//function TCategoriesLoader.Categories: IFibbageCategories;
-//begin
-//  Result := FCategories;
-//end;
-//
-//constructor TCategoriesLoader.Create;
-//begin
-//  inherited;
-//  FCategories := TFibbageCategories.Create;
-//end;
-//
-//destructor TCategoriesLoader.Destroy;
-//begin
-//  inherited;
-//end;
-//
-//function TCategoriesLoader.GetCategories(const APath: string): TCategories;
-//begin
-//  var fs := TFileStream.Create(APath, fmOpenRead);
-//  var sr := TStreamReader.Create(fs);
-//  try
-//    Result := TJSON.JsonToObject<TCategories>(sr.ReadToEnd);
-//  finally
-//    sr.Free;
-//    fs.Free;
-//  end;
-//end;
-//
-//procedure TCategoriesLoader.LoadCategories(const AContentDir: string);
-//begin
-//  var shortiePath := IncludeTrailingPathDelimiter(AContentDir) + 'fibbageshortie.jet';
-//  var finalPath := IncludeTrailingPathDelimiter(AContentDir) + 'finalfibbage.jet';
-//
-//  FCategories. ShortieCategories := GetCategories(shortiePath);
-//  FCategories.FinalCategories := GetCategories(finalPath);
-//end;
 
 { TFibbageCategories }
 
 constructor TFibbageCategories.Create;
 begin
   inherited;
+end;
+
+function TFibbageCategories.CreateNewCategory: ICategory;
+begin
+  Result := TCategoryData.Create;
+  Result.SetId(GetAvailableId);
+end;
+
+function TFibbageCategories.CreateNewFinalCategory: Integer;
+begin
+  var newCategory := CreateNewCategory;
+  FFinalCategories.Add(newCategory);
+  Result := newCategory.GetId;
+end;
+
+function TFibbageCategories.CreateNewShortieCategory: Integer;
+begin
+  var newCategory := CreateNewCategory;
+  FShortieCategories.Add(newCategory);
+  Result := newCategory.GetId;
 end;
 
 destructor TFibbageCategories.Destroy;
@@ -135,10 +123,60 @@ begin
   FShortieCategories := GetCategories(shortiePath);
 end;
 
+procedure TFibbageCategories.RemoveShortieCategory(AQuestion: IQuestion);
+begin
+  FShortieCategories.Delete(AQuestion.GetId);
+end;
+
+procedure TFibbageCategories.RemoveFinalCategory(AQuestion: IQuestion);
+begin
+  FFinalCategories.Delete(AQuestion.GetId);
+end;
+
 procedure TFibbageCategories.LoadFinalCategories;
 begin
   var finalPath := IncludeTrailingPathDelimiter(FContentDir) + 'finalfibbage.jet';
   FFinalCategories := GetCategories(finalPath);
+end;
+
+function TFibbageCategories.GetAvailableId: Word;
+var
+  res: Boolean;
+  idx: Integer;
+begin
+  while True do
+  begin
+    Result := Random(High(Word) - 1000) + 1000;
+
+    res := True;
+    idx := 0;
+    while idx < FShortieCategories.Count - 1 do
+    begin
+      if FShortieCategories.Category(idx).GetId = Result then
+      begin
+        res := False;
+        Break;
+      end;
+      Inc(idx);
+    end;
+
+    if res then
+    begin
+      res := True;
+      idx := 0;
+      while idx < FFinalCategories.Count - 1 do
+      begin
+        if FFinalCategories.Category(idx).GetId = Result then
+        begin
+          res := False;
+          Break;
+        end;
+        Inc(idx);
+      end;
+      if res then
+        Break;
+    end;
+  end;
 end;
 
 function TFibbageCategories.GetCategories(const APath: string): TCategories;
@@ -188,23 +226,12 @@ begin
   Result := FShortieCategories;
 end;
 
-//{ TCategories }
-
-//function TCategories.GetCategories: TArray<string>;
-//begin
-//  SetLength(Result, Length(FContent));
-//  for var idx := 0 to Length(FContent) - 1 do
-//    Result[idx] := FContent[idx].Category;
-//end;
-
-//function TCategories.GetIds: TArray<Cardinal>;
-//begin
-//  SetLength(Result, Length(FContent));
-//  for var idx := 0 to Length(FContent) - 1 do
-//    Result[idx] := FContent[idx].Id;
-//end;
-
 { TCategories }
+
+procedure TCategories.Add(ACategory: ICategory);
+begin
+  FContentList.Add(ACategory);
+end;
 
 function TCategories.Category(AIdx: Integer): ICategory;
 begin
@@ -215,13 +242,25 @@ end;
 
 function TCategories.Count: Integer;
 begin
-  Result := Length(FContent);
+  if not FContentListInitialized then
+    InitializeContentList;
+  Result := FContentList.Count;
 end;
 
 constructor TCategories.Create;
 begin
   inherited;
   FContentList := TInterfaceList.Create;
+end;
+
+procedure TCategories.Delete(AId: Integer);
+begin
+  for var idx := Count - 1 downto 0 do
+    if Category(idx).GetId = AId then
+    begin
+      FContentList.Delete(idx);
+      Break;
+    end;
 end;
 
 destructor TCategories.Destroy;

@@ -45,11 +45,15 @@ type
     FAudios: TObjectList<TAudioItem>;
     [JSONMarshalledAttribute(False)]
     FId: Integer;
+    [JSONMarshalledAttribute(False)]
+    FQuestionType: TQuestionType;
 
     procedure PrepareEmptyValues;
   public
     constructor Create;
     destructor Destroy; override;
+
+    procedure SetDefaults;
 
     function GetId: Integer;
     function GetQuestion: string;
@@ -71,6 +75,9 @@ type
 
     procedure Save(const APath: string);
 
+    function GetQuestionType: TQuestionType;
+    procedure SetQuestionType(AQuestionType: TQuestionType);
+
     property Fields: TArray<TQuestionField> read FFields write FFields;
   end;
 
@@ -86,6 +93,8 @@ type
     function FinalQuestions: TList<IQuestion>;
 
     procedure Save(const APath: string);
+    procedure RemoveShortieQuestion(AQuestion: IQuestion);
+    procedure RemoveFinalQuestion(AQuestion: IQuestion);
   end;
 
   TFibbageQuestions = class
@@ -141,12 +150,18 @@ procedure TQuestionsLoader.LoadShorties;
 begin
   var shortieDir := TDirectory.GetDirectories(FContentPath, '*fibbageshortie*');
   FillQuestions(shortieDir[0], FQuestions.ShortieQuestions);
+
+  for var item in FQuestions.ShortieQuestions do
+    item.SetQuestionType(qtShortie);
 end;
 
 procedure TQuestionsLoader.LoadFinals;
 begin
   var finalDirs := TDirectory.GetDirectories(FContentPath, '*finalfibbage*');
   FillQuestions(finalDirs[0], FQuestions.FinalQuestions);
+
+  for var item in FQuestions.FinalQuestions do
+    item.SetQuestionType(qtFinal);
 end;
 
 procedure TQuestionsLoader.FillQuestions(const AMainDir: string; AQuestionsList: TList<IQuestion>);
@@ -312,6 +327,11 @@ begin
       Exit(audio.Path);
 end;
 
+function TQuestionItem.GetQuestionType: TQuestionType;
+begin
+  Result := FQuestionType;
+end;
+
 procedure TQuestionItem.Save(const APath: string);
 var
   fs: TFileStream;
@@ -406,6 +426,76 @@ begin
     end;
 end;
 
+procedure TQuestionItem.SetDefaults;
+begin
+  SetLength(FFields, 13);
+
+  FFields[0] := TQuestionField.Create;
+  FFields[0].N := 'HasBumperAudio';
+  FFields[0].V := 'false';
+  FFields[0].T := 'B';
+
+  FFields[1] := TQuestionField.Create;
+  FFields[1].N := 'HasBumperType';
+  FFields[1].V := 'false';
+  FFields[1].T := 'B';
+
+  FFields[2] := TQuestionField.Create;
+  FFields[2].N := 'HasCorrectAudio';
+  FFields[2].V := 'false';
+  FFields[2].T := 'B';
+
+  FFields[3] := TQuestionField.Create;
+  FFields[3].N := 'HasQuestionAudio';
+  FFields[3].V := 'false';
+  FFields[3].T := 'B';
+
+  FFields[4] := TQuestionField.Create;
+  FFields[4].N := 'Suggestions';
+  FFields[4].V := '';
+  FFields[4].T := 'S';
+
+  FFields[5] := TQuestionField.Create;
+  FFields[5].N := 'Category';
+  FFields[5].V := '';
+  FFields[5].T := 'S';
+
+  FFields[6] := TQuestionField.Create;
+  FFields[6].N := 'CorrectText';
+  FFields[6].V := '';
+  FFields[6].T := 'S';
+
+  FFields[7] := TQuestionField.Create;
+  FFields[7].N := 'BumperType';
+  FFields[7].V := 'None';
+  FFields[7].T := 'S';
+
+  FFields[8] := TQuestionField.Create;
+  FFields[8].N := 'QuestionText';
+  FFields[8].V := '';
+  FFields[8].T := 'S';
+
+  FFields[9] := TQuestionField.Create;
+  FFields[9].N := 'AlternateSpellings';
+  FFields[9].V := '';
+  FFields[9].T := 'S';
+
+  FFields[10] := TQuestionField.Create;
+  FFields[10].N := 'BumperAudio';
+  FFields[10].V := '';
+  FFields[10].T := 'A';
+
+  FFields[11] := TQuestionField.Create;
+  FFields[11].N := 'CorrectAudio';
+  FFields[11].V := '';
+  FFields[11].T := 'A';
+
+  FFields[12] := TQuestionField.Create;
+  FFields[12].N := 'QuestionAudio';
+  FFields[12].V := '';
+  FFields[12].T := 'A';
+end;
+
 procedure TQuestionItem.SetId(AId: Integer);
 begin
   FId := AId;
@@ -439,6 +529,11 @@ begin
       audio.Path := AAudioPath;
       Break;
     end;
+end;
+
+procedure TQuestionItem.SetQuestionType(AQuestionType: TQuestionType);
+begin
+  FQuestionType := AQuestionType;
 end;
 
 procedure TQuestionItem.SetSuggestions(const ASuggestions: string);
@@ -485,6 +580,16 @@ end;
 function TQuestions.FinalQuestions: TList<IQuestion>;
 begin
   Result := FFinalQuestions;
+end;
+
+procedure TQuestions.RemoveFinalQuestion(AQuestion: IQuestion);
+begin
+  FFinalQuestions.Remove(AQuestion);
+end;
+
+procedure TQuestions.RemoveShortieQuestion(AQuestion: IQuestion);
+begin
+  FShortieQuestions.Remove(AQuestion);
 end;
 
 procedure TQuestions.Save(const APath: string);

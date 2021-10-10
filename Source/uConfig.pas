@@ -11,7 +11,7 @@ type
   TAppConfig = class
   strict private const
     APP_CONFIG_NAME = 'FibbageQE.ini';
-    DEFAULT_LOGGING_BROKER = 'tcp://localhost:7337';
+    DEFAULT_LOGGING_BROKER = 'tcp:/' + '/localhost:7337';
     DEFAULT_LOGGING_SERVICE = 'Default';
   strict private class var
     FInstance: TAppConfig;
