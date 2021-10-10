@@ -3,7 +3,7 @@ object RecordForm: TRecordForm
   Top = 0
   BorderStyle = ToolWindow
   Caption = 'Audio'
-  ClientHeight = 305
+  ClientHeight = 350
   ClientWidth = 493
   Position = OwnerFormCenter
   StyleBook = FrmMain.sbLightStyle
@@ -30,7 +30,7 @@ object RecordForm: TRecordForm
     Size.Width = 493.000000000000000000
     Size.Height = 100.000000000000000000
     Size.PlatformDefault = False
-    TabOrder = 3
+    TabOrder = 4
     object Layout4: TLayout
       Align = Client
       Size.Width = 493.000000000000000000
@@ -101,7 +101,7 @@ object RecordForm: TRecordForm
     Size.Width = 493.000000000000000000
     Size.Height = 50.000000000000000000
     Size.PlatformDefault = False
-    TabOrder = 4
+    TabOrder = 5
     object bRecordAudio: TButton
       Align = Client
       Size.Width = 493.000000000000000000
@@ -115,11 +115,11 @@ object RecordForm: TRecordForm
   end
   object GridPanelLayout1: TGridPanelLayout
     Align = Top
-    Position.Y = 250.000000000000000000
+    Position.Y = 300.000000000000000000
     Size.Width = 493.000000000000000000
     Size.Height = 50.000000000000000000
     Size.PlatformDefault = False
-    TabOrder = 5
+    TabOrder = 6
     ColumnCollection = <
       item
         Value = 50.000000000000000000
@@ -164,36 +164,27 @@ object RecordForm: TRecordForm
       OnClick = bGoBackClick
     end
   end
-  object lyOriginal: TLayout
+  object bPlayOriginalAudio: TButton
     Align = Top
     Position.Y = 100.000000000000000000
     Size.Width = 493.000000000000000000
     Size.Height = 50.000000000000000000
     Size.PlatformDefault = False
-    TabOrder = 11
-    object bPlayOriginalAudio: TButton
-      Align = Client
-      Size.Width = 427.000000000000000000
-      Size.Height = 50.000000000000000000
-      Size.PlatformDefault = False
-      StyleLookup = 'playtoolbuttonmultiview'
-      TabOrder = 3
-      Text = 'Play original audio'
-      OnClick = bPlayOriginalAudioClick
-    end
-    object bClearAudio: TButton
-      Align = Right
-      Margins.Left = 10.000000000000000000
-      Margins.Right = 10.000000000000000000
-      Position.X = 437.000000000000000000
-      Position.Y = 2.000000000000000000
-      Size.Width = 46.000000000000000000
-      Size.Height = 46.000000000000000000
-      Size.PlatformDefault = False
-      StyleLookup = 'trashtoolbutton'
-      TabOrder = 4
-      OnClick = bClearAudioClick
-    end
+    StyleLookup = 'playtoolbuttonmultiview'
+    TabOrder = 3
+    Text = 'Play original audio'
+    OnClick = bPlayOriginalAudioClick
+  end
+  object bRemoveAllAudio: TButton
+    Align = Top
+    Position.Y = 250.000000000000000000
+    Size.Width = 493.000000000000000000
+    Size.Height = 50.000000000000000000
+    Size.PlatformDefault = False
+    StyleLookup = 'trashtoolbuttonmultiview'
+    TabOrder = 17
+    Text = 'Remove audio'
+    OnClick = bRemoveAllAudioClick
   end
   object DXAudioIn1: TDXAudioIn
     Latency = 100

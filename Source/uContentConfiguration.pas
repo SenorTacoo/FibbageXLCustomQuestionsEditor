@@ -24,7 +24,7 @@ type
     function GetPath: string;
 
     function Initialize(const APath: string): Boolean;
-    procedure Save;
+    procedure Save(const APath: string);
   end;
 
 implementation
@@ -67,9 +67,10 @@ begin
   SetPath(APath);
 end;
 
-procedure TContentConfiguration.Save;
+procedure TContentConfiguration.Save(const APath: string);
 begin
-  FRawCfg.SaveToFile(TPath.Combine(GetPath, '.fcqeinfo'));
+  ForceDirectories(APath);
+  FRawCfg.SaveToFile(TPath.Combine(APath, '.fcqeinfo'));
 end;
 
 procedure TContentConfiguration.SetName(const AName: string);

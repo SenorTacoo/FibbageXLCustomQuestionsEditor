@@ -3,6 +3,7 @@
 interface
 
 uses
+  System.SysUtils,
   System.Classes,
   System.Generics.Collections;
 
@@ -53,18 +54,28 @@ type
     function GetSuggestions: string;
     function GetAnswer: string;
     function GetAlternateSpelling: string;
-    function GetQuestionAudioPath: string;
-    function GetAnswerAudioPath: string;
-    function GetBumperAudioPath: string;
+    function GetHaveQuestionAudio: Boolean;
+    function GetHaveAnswerAudio: Boolean;
+    function GetHaveBumperAudio: Boolean;
+//    function GetQuestionAudioPath: string;
+//    function GetAnswerAudioPath: string;
+//    function GetBumperAudioPath: string;
+    function GetQuestionAudioData: TBytes;
+    function GetAnswerAudioData: TBytes;
+    function GetBumperAudioData: TBytes;
 
     procedure SetId(AId: Integer);
     procedure SetQuestion(const AQuestion: string);
     procedure SetSuggestions(const ASuggestions: string);
     procedure SetAnswer(const AAnswer: string);
     procedure SetAlternateSpelling(const AAlternateSpelling: string);
-    procedure SetQuestionAudioPath(const AAudioPath: string);
-    procedure SetAnswerAudioPath(const AAudioPath: string);
-    procedure SetBumperAudioPath(const AAudioPath: string);
+    procedure SetQuestionAudioData(const AData: TBytes);
+    procedure SetAnswerAudioData(const AData: TBytes);
+    procedure SetBumperAudioData(const AData: TBytes);
+
+//    procedure SetQuestionAudioPath(const AAudioPath: string);
+//    procedure SetAnswerAudioPath(const AAudioPath: string);
+//    procedure SetBumperAudioPath(const AAudioPath: string);
 
     function GetQuestionType: TQuestionType;
     procedure SetQuestionType(AQuestionType: TQuestionType);
@@ -94,7 +105,7 @@ type
   IContentConfiguration = interface
     ['{B756232F-2FC1-4BD9-8CDB-76D33AC44D4B}']
     function Initialize(const APath: string): Boolean;
-    procedure Save;
+    procedure Save(const APath: string);
 
     procedure SetName(const AName: string);
     procedure SetPath(const APath: string);

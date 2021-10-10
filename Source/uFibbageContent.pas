@@ -3,6 +3,7 @@
 interface
 
 uses
+  uLog,
   System.IOUtils,
   System.SysUtils,
   System.Threading,
@@ -15,9 +16,18 @@ type
   TFibbageContent = class(TInterfacedObject, IFibbageContent)
   private
     FProjectPath: string;
+    FConfig: IContentConfiguration;
     FCategories: IFibbageCategories;
     FQuestionsLoader: IQuestionsLoader;
     procedure SaveManifest(const APath: string);
+    procedure PrepareBackup(const APath: string);
+    procedure RemoveBackup(const APath: string);
+    procedure RestoreBackup(const APath: string);
+    procedure RestoreOldDir(const APath: string);
+    procedure SwitchOldDirToNew(const APath: string);
+    procedure PostSaveFailed(const APath: string);
+    procedure PostSaveSuccessful(const APath: string);
+    procedure PreSave(const APath: string);
   public
     constructor Create(ACategories: IFibbageCategories; AQuestionsLoader: IQuestionsLoader);
 
@@ -83,6 +93,7 @@ end;
 procedure TFibbageContent.Initialize(AConfiguration: IContentConfiguration;
   AOnContentInitialized: TOnContentInitialized; AOnContentError: TOnContentError);
 begin
+  FConfig := AConfiguration;
   FProjectPath := AConfiguration.GetPath;
   TTask.Create(
     procedure
@@ -118,11 +129,74 @@ begin
   FQuestionsLoader.Questions.RemoveShortieQuestion(AQuestion);
 end;
 
+procedure TFibbageContent.PrepareBackup(const APath: string);
+begin
+  if DirectoryExists(APath) then
+    TDirectory.Move(APath, APath + '_backup');
+end;
+
+procedure TFibbageContent.RemoveBackup(const APath: string);
+begin
+  if DirectoryExists(APath + '_backup') then
+    TDirectory.Delete(APath + '_backup', True);
+end;
+
+procedure TFibbageContent.RestoreBackup(const APath: string);
+begin
+  if DirectoryExists(APath + '_backup') then
+    TDirectory.Move(APath + '_backup', APath);
+end;
+
+procedure TFibbageContent.SwitchOldDirToNew(const APath: string);
+begin
+  if DirectoryExists(APath) then
+    TDirectory.Delete(APath, True);
+  TDirectory.Move(APath + '_new', APath);
+end;
+
+procedure TFibbageContent.RestoreOldDir(const APath: string);
+begin
+  if DirectoryExists(APath + '_new') then
+    TDirectory.Delete(APath + '_new', True);
+end;
+
+procedure TFibbageContent.PreSave(const APath: string);
+begin
+  PrepareBackup(APath);
+//  FQuestionsLoader.Questions.
+end;
+
+procedure TFibbageContent.PostSaveSuccessful(const APath: string);
+begin
+  RemoveBackup(APath);
+
+end;
+
+procedure TFibbageContent.PostSaveFailed(const APath: string);
+begin
+  RestoreBackup(APath);
+
+end;
+
 procedure TFibbageContent.Save(const APath: string);
 begin
-  FQuestionsLoader.Questions.Save(APath);
-  FCategories.Save(APath);
-  SaveManifest(APath);
+//  var newDirPath := APath + '_new';
+  PreSave(APath);
+  try
+    FConfig.Save(APath);
+    FQuestionsLoader.Questions.Save(APath);
+    FCategories.Save(APath);
+    SaveManifest(APath);
+
+//    SwitchOldDirToNew(APath);
+    PostSaveSuccessful(APath);
+  except
+    on E: Exception do
+    begin
+      LogE('save exception %s/%s', [E.Message, E.ClassName]);
+      PostSaveFailed(APath);
+    end;
+  end;
 end;
 
 procedure TFibbageContent.SaveManifest(const APath: string);

@@ -33,8 +33,7 @@ type
     DSAudioOut1: TDSAudioOut;
     VorbisIn1: TVorbisIn;
     StereoBalance1: TStereoBalance;
-    bClearAudio: TButton;
-    lyOriginal: TLayout;
+    bRemoveAllAudio: TButton;
     procedure bPlayOriginalAudioClick(Sender: TObject);
     procedure bPlayRecordedAudioClick(Sender: TObject);
     procedure bGoBackClick(Sender: TObject);
@@ -47,13 +46,14 @@ type
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure voMicDone(Sender: TComponent);
     procedure DSAudioOut1Done(Sender: TComponent);
-    procedure bClearAudioClick(Sender: TObject);
+    procedure bRemoveAllAudioClick(Sender: TObject);
   private
     FAudioType: TAudioType;
     FQuestion: IQuestion;
     FFormCreated: Boolean;
     FCurrentlyPlayingMode: TAudioType;
     FDeleteAudioOnSave: Boolean;
+    FRecordedData: TBytes;
 
     procedure FillDevices;
     procedure DisablePlay;
@@ -62,8 +62,11 @@ type
     procedure OnOutputAudioStart;
     procedure SaveAudio;
     procedure RemoveTmpFile;
+    procedure RemoveTmpAudioFile;
     procedure OnInputAudioStart;
     procedure EnablePlayOriginalIfPossible;
+    function CreateTempAudioFile(AMode: TAudioType): string;
+    procedure SaveRecordedDataAndRemoveTmpFile;
   public
     function ShowModal: TModalResult; overload;
 
@@ -101,8 +104,6 @@ begin
     voMic.Stop
   else
   begin
-    RemoveTmpFile;
-
     DXAudioIn1.DeviceNumber := cbAudioInput.ItemIndex;
     voMic.FileName := TPath.Combine(TPath.GetTempPath, ChangeFileExt(TPath.GetRandomFileName, '.ogg'));
     voMic.Run;
@@ -112,6 +113,16 @@ end;
 procedure TRecordForm.bRefreshDevicesClick(Sender: TObject);
 begin
   FillDevices;
+end;
+
+procedure TRecordForm.bRemoveAllAudioClick(Sender: TObject);
+begin
+  bPlayOriginalAudio.Enabled := False;
+  bPlayRecordedAudio.Enabled := False;
+  bRemoveAllAudio.Enabled := False;
+  bRecordAudio.Enabled := False;
+  bSaveRecordedAudio.Enabled := True;
+  FRecordedData := nil;
 end;
 
 procedure TRecordForm.bSaveRecordedAudioClick(Sender: TObject);
@@ -139,7 +150,7 @@ procedure TRecordForm.DisablePlay;
 begin
   bPlayOriginalAudio.Enabled := False;
   bPlayRecordedAudio.Enabled := False;
-  bClearAudio.Enabled := False;
+  bRemoveAllAudio.Enabled := False;
 end;
 
 procedure TRecordForm.EnablePlayOriginalIfPossible;
@@ -147,14 +158,14 @@ begin
   var res := True;
   case FAudioType of
     atQuestion:
-      res := (FQuestion.GetQuestionAudioPath <> '') and FileExists(FQuestion.GetQuestionAudioPath);
+      res := FQuestion.GetHaveQuestionAudio and (Length(FQuestion.GetQuestionAudioData) > 0);
     atAnswer:
-      res := (FQuestion.GetAnswerAudioPath <> '') and FileExists(FQuestion.GetAnswerAudioPath);
+      res := FQuestion.GetHaveAnswerAudio and (Length(FQuestion.GetAnswerAudioData) > 0);
     atBumper:
-      res := (FQuestion.GetBumperAudioPath <> '') and FileExists(FQuestion.GetBumperAudioPath);
+      res := FQuestion.GetHaveBumperAudio and (Length(FQuestion.GetBumperAudioData) > 0);
   end;
   bPlayOriginalAudio.Enabled := res;
-  bClearAudio.Enabled := bPlayOriginalAudio.Enabled;
+  bRemoveAllAudio.Enabled := bPlayOriginalAudio.Enabled;
 end;
 
 procedure TRecordForm.DisableRecord;
@@ -167,6 +178,7 @@ begin
   TThread.Synchronize(nil,
   procedure
   begin
+    RemoveTmpAudioFile;
     case FCurrentlyPlayingMode of
       atRecorded:
       begin
@@ -182,7 +194,7 @@ begin
 
     EnablePlayOriginalIfPossible;
     bRecordAudio.Enabled := True;
-    bPlayRecordedAudio.Enabled := (voMic.FileName <> '') and FileExists(voMic.FileName);
+    bPlayRecordedAudio.Enabled := Length(FRecordedData) > 0;
     bSaveRecordedAudio.Enabled := bPlayRecordedAudio.Enabled;
   end);
 end;
@@ -193,8 +205,6 @@ begin
   FQuestion := AQuestion;
   if ShowModal = mrOk then
     SaveAudio
-  else
-    RemoveTmpFile;
 end;
 
 procedure TRecordForm.EditBumperAudio(AQuestion: IQuestion);
@@ -203,8 +213,6 @@ begin
   FQuestion := AQuestion;
   if ShowModal = mrOk then
     SaveAudio
-  else
-    RemoveTmpFile;
 end;
 
 procedure TRecordForm.EditQuestionAudio(AQuestion: IQuestion);
@@ -213,17 +221,6 @@ begin
   FQuestion := AQuestion;
   if ShowModal = mrOk then
     SaveAudio
-  else
-    RemoveTmpFile;
-end;
-
-procedure TRecordForm.bClearAudioClick(Sender: TObject);
-begin
-  FDeleteAudioOnSave := True;
-
-  bPlayOriginalAudio.Enabled := False;
-  bClearAudio.Enabled := False;
-  bSaveRecordedAudio.Enabled := True;
 end;
 
 procedure TRecordForm.bGoBackClick(Sender: TObject);
@@ -318,7 +315,7 @@ begin
     procedure
     begin
       bPlayOriginalAudio.Enabled := False;
-      bClearAudio.Enabled := False;
+      bRemoveAllAudio.Enabled := False;
       bRecordAudio.StyleLookup := 'stoptoolbuttonmultiview';
       bRecordAudio.Text := 'Stop recording';
       bPlayRecordedAudio.Enabled := False;
@@ -345,28 +342,46 @@ begin
           bPlayRecordedAudio.Enabled := False;
         end;
       end;
-      bClearAudio.Enabled := False;
+      bRemoveAllAudio.Enabled := False;
       bRecordAudio.Enabled := False;
       bSaveRecordedAudio.Enabled := False;
     end);
 end;
 
 procedure TRecordForm.PlayAudio(AMode: TAudioType);
-var
-  path: string;
 begin
   DSAudioOut1.DeviceNumber := cbAudioOutput.ItemIndex;
   DSAudioOut1.Stop(False);
 
-  case AMode of
-    atQuestion: path := FQuestion.GetQuestionAudioPath;
-    atAnswer: path := FQuestion.GetAnswerAudioPath;
-    atBumper: path := FQuestion.GetBumperAudioPath;
-    atRecorded: path := voMic.FileName;
-  end;
   FCurrentlyPlayingMode := AMode;
-  VorbisIn1.FileName := path;
+  VorbisIn1.FileName := CreateTempAudioFile(AMode);
   DSAudioOut1.Run;
+end;
+
+function TRecordForm.CreateTempAudioFile(AMode: TAudioType): string;
+var
+  buffer: TBytes;
+begin
+  case AMode of
+    atQuestion: buffer := FQuestion.GetQuestionAudioData;
+    atAnswer: buffer := FQuestion.GetAnswerAudioData;
+    atBumper: buffer := FQuestion.GetBumperAudioData;
+    atRecorded: buffer := FRecordedData;
+  end;
+
+  Result := TPath.Combine(TPath.GetTempPath, TPath.GetTempFileName);
+  var fs := TFileStream.Create(Result, fmCreate);
+  try
+    fs.Write(buffer, Length(buffer));
+  finally
+    fs.Free;
+  end;
+end;
+
+procedure TRecordForm.RemoveTmpAudioFile;
+begin
+  if (VorbisIn1.FileName <> '') and FileExists(VorbisIn1.FileName) then
+    DeleteFile(VorbisIn1.FileName);
 end;
 
 procedure TRecordForm.RemoveTmpFile;
@@ -379,11 +394,11 @@ procedure TRecordForm.SaveAudio;
 begin
   case FAudioType of
     atQuestion:
-      FQuestion.SetQuestionAudioPath(voMic.FileName);
+      FQuestion.SetQuestionAudioData(FRecordedData);
     atAnswer:
-      FQuestion.SetAnswerAudioPath(voMic.FileName);
+      FQuestion.SetAnswerAudioData(FRecordedData);
     atBumper:
-      FQuestion.SetBumperAudioPath(voMic.FileName);
+      FQuestion.SetBumperAudioData(FRecordedData);
   end;
 end;
 
@@ -393,15 +408,32 @@ begin
   Result := inherited;
 end;
 
+procedure TRecordForm.SaveRecordedDataAndRemoveTmpFile;
+begin
+  if not FileExists(voMic.FileName) then
+    Exit;
+  var fs := TFileStream.Create(voMic.FileName, fmOpenRead);
+  try
+    SetLength(FRecordedData, fs.Size);
+    fs.Read(FRecordedData, Length(FRecordedData));
+  finally
+    fs.Free;
+  end;
+
+  RemoveTmpFile;
+end;
+
 procedure TRecordForm.voMicDone(Sender: TComponent);
 begin
   TThread.Synchronize(nil,
   procedure
   begin
+    SaveRecordedDataAndRemoveTmpFile;
+
     EnablePlayOriginalIfPossible;
     bRecordAudio.StyleLookup := 'mictoolbuttonmultiview';
     bRecordAudio.Text := 'Record audio';
-    bPlayRecordedAudio.Enabled := (voMic.FileName <> '') and FileExists(voMic.FileName);
+    bPlayRecordedAudio.Enabled := Length(FRecordedData) > 0;
     bSaveRecordedAudio.Enabled := bPlayRecordedAudio.Enabled;
   end);
 end;

@@ -374,7 +374,7 @@ begin
     if not GetProjectName(str) then
       Exit;
     cfg.SetName(str);
-    cfg.Save;
+    cfg.Save(cfg.GetPath);
   end;
 
   sbxProjects.BeginUpdate;
@@ -470,7 +470,7 @@ begin
   if not GetProjectPath(str) then
     Exit;
   cfg.SetPath(str);
-  cfg.Save;
+  cfg.Save(cfg.GetPath);
 
   sbxProjects.BeginUpdate;
   try
@@ -550,6 +550,7 @@ begin
   if not GetProjectPath(path) then
     Exit;
 
+  // update config
   FContent.Save(path);
 end;
 
@@ -1101,7 +1102,7 @@ begin
   FLastClickedConfiguration.OrgConfiguration.SetName(eProjectName.Text);
   FLastClickedConfiguration.RefreshData;
   if doSave then
-    FLastClickedConfiguration.OrgConfiguration.Save;
+    FLastClickedConfiguration.OrgConfiguration.Save(FLastClickedConfiguration.OrgConfiguration.GetPath);
   GoToHome;
 end;
 
