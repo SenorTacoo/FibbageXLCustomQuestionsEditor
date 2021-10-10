@@ -75,11 +75,11 @@ procedure TRecordForm.bPlayOriginalAudioClick(Sender: TObject);
 begin
   case FAudioType of
     atQuestion:
-      PlayAudio(FQuestion.QuestionAudioPath);
+      PlayAudio(FQuestion.GetQuestionAudioPath);
     atAnswer:
-      PlayAudio(FQuestion.CorrectItemAudioPath);
+      PlayAudio(FQuestion.GetAnswerAudioPath);
     atBumper:
-      PlayAudio(FQuestion.BumperAudioPath);
+      PlayAudio(FQuestion.GetBumperAudioPath);
   end;
 end;
 
@@ -306,21 +306,21 @@ begin
     case FAudioType of
       atQuestion:
       begin
-        if FileExists(FQuestion.QuestionAudioPath) then
-          DeleteFile(FQuestion.QuestionAudioPath);
-        TFile.Move(voMic.FileName, ExtractFileDir(FQuestion.QuestionAudioPath));
+        if FileExists(FQuestion.GetQuestionAudioPath) then
+          DeleteFile(FQuestion.GetQuestionAudioPath);
+        TFile.Move(voMic.FileName, ExtractFileDir(FQuestion.GetQuestionAudioPath));
       end;
       atAnswer:
       begin
-        if FileExists(FQuestion.CorrectItemAudioPath) then
-          DeleteFile(FQuestion.CorrectItemAudioPath);
-        TFile.Move(voMic.FileName, ExtractFileDir(FQuestion.CorrectItemAudioPath));
+        if FileExists(FQuestion.GetAnswerAudioPath) then
+          DeleteFile(FQuestion.GetAnswerAudioPath);
+        TFile.Move(voMic.FileName, ExtractFileDir(FQuestion.GetAnswerAudioPath));
       end;
       atBumper:
       begin
-        if FileExists(FQuestion.BumperAudioPath) then
-          DeleteFile(FQuestion.BumperAudioPath);
-        TFile.Move(voMic.FileName, ExtractFileDir(FQuestion.BumperAudioPath));
+        if FileExists(FQuestion.GetBumperAudioPath) then
+          DeleteFile(FQuestion.GetBumperAudioPath);
+        TFile.Move(voMic.FileName, ExtractFileDir(FQuestion.GetBumperAudioPath));
       end;
     end;
 end;

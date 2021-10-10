@@ -48,14 +48,20 @@ type
 
     procedure PrepareEmptyValues;
   public
-    function Id: Integer;
-    function Question: string;
-    function Suggestions: string;
-    function Answer: string;
-    function AlternateSpelling: string;
-    function QuestionAudioPath: string;
-    function CorrectItemAudioPath: string;
-    function BumperAudioPath: string;
+    function GetId: Integer;
+    function GetQuestion: string;
+    function GetSuggestions: string;
+    function GetAnswer: string;
+    function GetAlternateSpelling: string;
+    function GetQuestionAudioPath: string;
+    function GetAnswerAudioPath: string;
+    function GetBumperAudioPath: string;
+
+    procedure SetId(AId: Integer);
+    procedure SetQuestion(const AQuestion: string);
+    procedure SetSuggestions(const ASuggestions: string);
+    procedure SetAnswer(const AAnswer: string);
+    procedure SetAlternateSpelling(const AAlternateSpelling: string);
 
     procedure Save(const APath: string);
 
@@ -206,7 +212,7 @@ end;
 
 { TQuestionItem }
 
-function TQuestionItem.AlternateSpelling: string;
+function TQuestionItem.GetAlternateSpelling: string;
 begin
   for var field in FFields do
     if SameText('AlternateSpellings', field.N) then
@@ -216,14 +222,14 @@ begin
         Exit(field.V);
 end;
 
-function TQuestionItem.Answer: string;
+function TQuestionItem.GetAnswer: string;
 begin
   for var field in FFields do
     if SameText('CorrectText', field.N) then
       Exit(field.V);
 end;
 
-function TQuestionItem.BumperAudioPath: string;
+function TQuestionItem.GetBumperAudioPath: string;
 begin
   Result := '';
   var audioName := '';
@@ -240,7 +246,7 @@ begin
       Exit(audio.Path);
 end;
 
-function TQuestionItem.CorrectItemAudioPath: string;
+function TQuestionItem.GetAnswerAudioPath: string;
 begin
   Result := '';
   var audioName := '';
@@ -257,27 +263,19 @@ begin
       Exit(audio.Path);
 end;
 
-function TQuestionItem.Id: Integer;
+function TQuestionItem.GetId: Integer;
 begin
   Result := FId;
 end;
 
-procedure TQuestionItem.PrepareEmptyValues;
-begin
-  for var field in Fields do
-    if SameText('AlternateSpellings', field.N) then
-      if field.V.IsEmpty then
-        field.V := EMPTY_STRING;
-end;
-
-function TQuestionItem.Question: string;
+function TQuestionItem.GetQuestion: string;
 begin
   for var field in FFields do
     if SameText('QuestionText', field.N) then
       Exit(field.V);
 end;
 
-function TQuestionItem.QuestionAudioPath: string;
+function TQuestionItem.GetQuestionAudioPath: string;
 begin
   Result := '';
   var audioName := '';
@@ -325,11 +323,67 @@ begin
   end;
 end;
 
-function TQuestionItem.Suggestions: string;
+procedure TQuestionItem.SetAlternateSpelling(const AAlternateSpelling: string);
+begin
+  for var field in FFields do
+    if SameText('AlternateSpellings', field.N) then
+    begin
+      if AAlternateSpelling.IsEmpty then
+        field.V := EMPTY_STRING
+      else
+        field.V := AAlternateSpelling;
+      Break;
+    end;
+end;
+
+procedure TQuestionItem.SetAnswer(const AAnswer: string);
+begin
+  for var field in FFields do
+    if SameText('CorrectText', field.N) then
+    begin
+      field.V := AAnswer;
+      Break;
+    end;
+end;
+
+procedure TQuestionItem.SetId(AId: Integer);
+begin
+  FId := AId;
+end;
+
+procedure TQuestionItem.SetQuestion(const AQuestion: string);
+begin
+  for var field in FFields do
+    if SameText('QuestionText', field.N) then
+    begin
+      field.V := AQuestion;
+      Break;
+    end;
+end;
+
+procedure TQuestionItem.SetSuggestions(const ASuggestions: string);
+begin
+  for var field in FFields do
+    if SameText('Suggestions', field.N) then
+    begin
+      field.V := ASuggestions;
+      Break;
+    end;
+end;
+
+function TQuestionItem.GetSuggestions: string;
 begin
   for var field in FFields do
     if SameText('Suggestions', field.N) then
       Exit(field.V);
+end;
+
+procedure TQuestionItem.PrepareEmptyValues;
+begin
+  for var field in Fields do
+    if SameText('AlternateSpellings', field.N) then
+      if field.V.IsEmpty then
+        field.V := EMPTY_STRING;
 end;
 
 { TQuestions }

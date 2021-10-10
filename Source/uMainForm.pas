@@ -120,7 +120,6 @@ type
     procedure bSingleItemQuestionAudioClick(Sender: TObject);
     procedure bSingleItemCorrectAudioClick(Sender: TObject);
     procedure bSingleItemBumperAudioClick(Sender: TObject);
-    procedure aGoToQuestionDetailsUpdate(Sender: TObject);
     procedure aGoToFinalQuestionsUpdate(Sender: TObject);
     procedure aGoToShortieQuestionsUpdate(Sender: TObject);
     procedure lvFinalQuestionsDblClick(Sender: TObject);
@@ -130,6 +129,7 @@ type
     procedure DSAudioOut1Done(Sender: TComponent);
     procedure voMicSyncDone(Sender: TComponent);
     procedure FormDestroy(Sender: TObject);
+    procedure bGoBackFromDetailsClick(Sender: TObject);
   private
     FMouseDownPt: TPoint;
     FAppCreated: Boolean;
@@ -150,6 +150,7 @@ type
     procedure StartRecording(ASoundType: TFibbageSoundType);
     procedure StopRecording;
     procedure OnStartRecord;
+    procedure GoToQuestionDetails;
   public
     { Public declarations }
   end;
@@ -169,19 +170,6 @@ end;
 procedure TFrmMain.aGoToShortieQuestionsUpdate(Sender: TObject);
 begin
   FLastActiveTab := tiShortieQuestions;
-end;
-
-procedure TFrmMain.aGoToQuestionDetailsUpdate(Sender: TObject);
-begin
-  mSingleItemQuestion.Text := FSelectedQuestion.Question;
-  mSingleItemAnswer.Text := FSelectedQuestion.Answer;
-  mSingleItemAlternateSpelling.Text :=  FSelectedQuestion.AlternateSpelling.Replace(',', ', ');
-  mSingleItemSuggestions.Text := FSelectedQuestion.Suggestions.Replace(',', ', ');
-  eSingleItemId.Text := FSelectedCategory.Id.ToString;
-  eSingleItemCategory.Text := FSelectedCategory.Category;
-  bSingleItemQuestionAudio.Enabled := (not FSelectedQuestion.QuestionAudioPath.IsEmpty) and FileExists(FSelectedQuestion.QuestionAudioPath);
-  bSingleItemCorrectAudio.Enabled := (not FSelectedQuestion.CorrectItemAudioPath.IsEmpty) and FileExists(FSelectedQuestion.CorrectItemAudioPath);
-  bSingleItemBumperAudio.Enabled := (not FSelectedQuestion.BumperAudioPath.IsEmpty) and FileExists(FSelectedQuestion.BumperAudioPath);
 end;
 
 procedure TFrmMain.aWindowMaximizeExecute(Sender: TObject);
@@ -274,18 +262,18 @@ begin
     for var item in AQuestions do
     begin
       var lvItem := AListView.Items.Add;
-      lvItem.Data['Question'] := item.Question;
-      lvItem.Data['Suggestions'] := item.Suggestions;
-      lvItem.Data['Answer'] := item.Answer;
+      lvItem.Data['Question'] := item.GetQuestion;
+      lvItem.Data['Suggestions'] := item.GetSuggestions;
+      lvItem.Data['Answer'] := item.GetAnswer;
       lvItem.Data['ItemIdx'] := AQuestions.IndexOf(item);
       if AListView = lvEditAllItems then
         lvItem.Data['CategoryDetails'] := Format('Id: %d, Category: %s', [
-          FContent.Categories.GetShortieCategory(item).Id,
-          FContent.Categories.GetShortieCategory(item).Category])
+          FContent.Categories.GetShortieCategory(item).GetId,
+          FContent.Categories.GetShortieCategory(item).GetCategory])
       else
         lvItem.Data['CategoryDetails'] := Format('Id: %d, Category: %s', [
-          FContent.Categories.GetFinalCategory(item).Id,
-          FContent.Categories.GetFinalCategory(item).Category])
+          FContent.Categories.GetFinalCategory(item).GetId,
+          FContent.Categories.GetFinalCategory(item).GetCategory])
 
     end;
   finally
@@ -347,14 +335,48 @@ begin
   FContent.Save(gameDir);
 end;
 
+procedure TFrmMain.bGoBackFromDetailsClick(Sender: TObject);
+begin
+  bImportQuestions.Visible := True;
+  bExportQuestions.Visible := True;
+
+  bImportQuestions.Position.Y := bMenu.Position.Y + bMenu.Height;
+  bExportQuestions.Position.Y := bImportQuestions.Position.Y + bImportQuestions.Height;
+
+
+//    mSingleItemQuestion.Text := FSelectedQuestion.GetQuestion;
+//  mSingleItemAnswer.Text := FSelectedQuestion.GetAnswer;
+//  mSingleItemAlternateSpelling.Text :=  FSelectedQuestion.GetAlternateSpelling.Replace(',', ', ');
+//  mSingleItemSuggestions.Text := FSelectedQuestion.GetSuggestions.Replace(',', ', ');
+//  eSingleItemId.Text := FSelectedCategory.GetId.ToString;
+//  eSingleItemCategory.Text := FSelectedCategory.GetCategory;
+//  bSingleItemQuestionAudio.Enabled := (not FSelectedQuestion.GetQuestionAudioPath.IsEmpty) and FileExists(FSelectedQuestion.GetQuestionAudioPath);
+//  bSingleItemCorrectAudio.Enabled := (not FSelectedQuestion.GetCorrectItemAudioPath.IsEmpty) and FileExists(FSelectedQuestion.GetCorrectItemAudioPath);
+//  bSingleItemBumperAudio.Enabled := (not FSelectedQuestion.GetBumperAudioPath.IsEmpty) and FileExists(FSelectedQuestion.GetBumperAudioPath);
+
+
+
+  aGoToAllQuestions.Execute;
+end;
+
 procedure TFrmMain.bSingleItemBumperAudioClick(Sender: TObject);
 begin
-  PlaySound(FSelectedQuestion.BumperAudioPath);
+  var form := TRecordForm.Create(Self);
+  try
+    form.EditBumperAudio(FSelectedQuestion);
+  finally
+    form.Free;
+  end;
 end;
 
 procedure TFrmMain.bSingleItemCorrectAudioClick(Sender: TObject);
 begin
-  PlaySound(FSelectedQuestion.CorrectItemAudioPath);
+  var form := TRecordForm.Create(Self);
+  try
+    form.EditAnswerAudio(FSelectedQuestion);
+  finally
+    form.Free;
+  end;
 end;
 
 procedure TFrmMain.bSingleItemQuestionAudioClick(Sender: TObject);
@@ -400,6 +422,24 @@ begin
     ClientWidth := 640;
 end;
 
+procedure TFrmMain.GoToQuestionDetails;
+begin
+  bImportQuestions.Visible := False;
+  bExportQuestions.Visible := False;
+
+  mSingleItemQuestion.Text := FSelectedQuestion.GetQuestion;
+  mSingleItemAnswer.Text := FSelectedQuestion.GetAnswer;
+  mSingleItemAlternateSpelling.Text :=  FSelectedQuestion.GetAlternateSpelling.Replace(',', ', ');
+  mSingleItemSuggestions.Text := FSelectedQuestion.GetSuggestions.Replace(',', ', ');
+  eSingleItemId.Text := FSelectedCategory.GetId.ToString;
+  eSingleItemCategory.Text := FSelectedCategory.GetCategory;
+  bSingleItemQuestionAudio.Enabled := (not FSelectedQuestion.GetQuestionAudioPath.IsEmpty) and FileExists(FSelectedQuestion.GetQuestionAudioPath);
+  bSingleItemCorrectAudio.Enabled := (not FSelectedQuestion.GetAnswerAudioPath.IsEmpty) and FileExists(FSelectedQuestion.GetAnswerAudioPath);
+  bSingleItemBumperAudio.Enabled := (not FSelectedQuestion.GetBumperAudioPath.IsEmpty) and FileExists(FSelectedQuestion.GetBumperAudioPath);
+
+  aGoToQuestionDetails.Execute;
+end;
+
 procedure TFrmMain.lDarkModeClick(Sender: TObject);
 begin
   sDarkMode.IsChecked := not sDarkMode.IsChecked;
@@ -410,7 +450,7 @@ begin
   var selectedItem := lvEditAllItems.Items[lvEditAllItems.ItemIndex];
   FSelectedQuestion := FContent.Questions.ShortieQuestions[selectedItem.Data['ItemIdx'].AsType<Integer>];
   FSelectedCategory := FContent.Categories.GetShortieCategory(FSelectedQuestion);
-  aGoToQuestionDetails.Execute;
+  GoToQuestionDetails;
 end;
 
 procedure TFrmMain.lvEditAllItemsKeyDown(Sender: TObject; var Key: Word;
@@ -421,7 +461,7 @@ begin
     var selectedItem := lvEditAllItems.Items[lvEditAllItems.ItemIndex];
     FSelectedQuestion := FContent.Questions.ShortieQuestions[selectedItem.Data['ItemIdx'].AsType<Integer>];
     FSelectedCategory := FContent.Categories.GetShortieCategory(FSelectedQuestion);
-    aGoToQuestionDetails.Execute;
+    GoToQUestionDetails;
   end;
 end;
 
@@ -468,7 +508,7 @@ begin
   var selectedItem := lvFinalQuestions.Items[lvFinalQuestions.ItemIndex];
   FSelectedQuestion := FContent.Questions.FinalQuestions[selectedItem.Data['ItemIdx'].AsType<Integer>];
   FSelectedCategory := FContent.Categories.GetFinalCategory(FSelectedQuestion);
-  aGoToQuestionDetails.Execute;
+  GoToQuestionDetails;
 end;
 
 procedure TFrmMain.lvFinalQuestionsKeyDown(Sender: TObject; var Key: Word;
@@ -479,7 +519,7 @@ begin
     var selectedItem := lvFinalQuestions.Items[lvFinalQuestions.ItemIndex];
     FSelectedQuestion := FContent.Questions.FinalQuestions[selectedItem.Data['ItemIdx'].AsType<Integer>];
     FSelectedCategory := FContent.Categories.GetFinalCategory(FSelectedQuestion);
-    aGoToQuestionDetails.Execute;
+    GoToQuestionDetails;
   end;
 end;
 

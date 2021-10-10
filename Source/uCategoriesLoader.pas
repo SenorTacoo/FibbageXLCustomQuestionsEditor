@@ -19,14 +19,14 @@ type
     FCategory: string;
     FBumper: string;
   public
-    function Id: Integer;
-    function Category: string;
+    function GetId: Integer;
+    function GetCategory: string;
+
+    procedure SetId(AId: Integer);
+    procedure SetCategory(const ACategory: string);
+
     function X: Boolean;
     function Bumper: string;
-//    property X: Boolean read FX write FX;
-//    property Id: Integer read FId write FId;
-//    property Category: string read FCategory write FCategory;
-//    property Bumper: string read FBumper write FBumper;
   end;
 
   TCategories = class(TInterfacedObject, ICategories)
@@ -159,7 +159,7 @@ begin
   for var idx := 0 to FFinalCategories.Count - 1 do
   begin
     var category := FFinalCategories.Category(idx);
-    if AQuestion.Id = category.Id then
+    if AQuestion.GetId = category.GetId then
       Exit(category);
   end;
 end;
@@ -170,7 +170,7 @@ begin
   for var idx := 0 to FShortieCategories.Count - 1 do
   begin
     var category := FShortieCategories.Category(idx);
-    if AQuestion.Id = category.Id then
+    if AQuestion.GetId = category.GetId then
       Exit(category);
   end;
 end;
@@ -249,14 +249,24 @@ begin
   Result := FBumper;
 end;
 
-function TCategoryData.Category: string;
+function TCategoryData.GetCategory: string;
 begin
   Result := FCategory;
 end;
 
-function TCategoryData.Id: Integer;
+function TCategoryData.GetId: Integer;
 begin
   Result := FId;
+end;
+
+procedure TCategoryData.SetCategory(const ACategory: string);
+begin
+  FCategory := ACategory;
+end;
+
+procedure TCategoryData.SetId(AId: Integer);
+begin
+  FId := AId;
 end;
 
 function TCategoryData.X: Boolean;

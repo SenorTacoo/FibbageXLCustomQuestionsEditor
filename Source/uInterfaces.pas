@@ -15,8 +15,10 @@ type
 
   ICategory = interface
     ['{A0359347-2ED4-4141-88D4-F83BD6BEA2B4}']
-    function Id: Integer;
-    function Category: string;
+    function GetId: Integer;
+    function GetCategory: string;
+    procedure SetId(AId: Integer);
+    procedure SetCategory(const ACategory: string);
   end;
 
   ICategories = interface
@@ -45,14 +47,20 @@ type
 
   IQuestion = interface
    ['{EE283E65-E86A-4FCF-952F-4C9FAC7CBD69}']
-    function Id: Integer;
-    function Question: string;
-    function Suggestions: string;
-    function Answer: string;
-    function AlternateSpelling: string;
-    function QuestionAudioPath: string;
-    function CorrectItemAudioPath: string;
-    function BumperAudioPath: string;
+    function GetId: Integer;
+    function GetQuestion: string;
+    function GetSuggestions: string;
+    function GetAnswer: string;
+    function GetAlternateSpelling: string;
+    function GetQuestionAudioPath: string;
+    function GetAnswerAudioPath: string;
+    function GetBumperAudioPath: string;
+
+    procedure SetId(AId: Integer);
+    procedure SetQuestion(const AQuestion: string);
+    procedure SetSuggestions(const ASuggestions: string);
+    procedure SetAnswer(const AAnswer: string);
+    procedure SetAlternateSpelling(const AAlternateSpelling: string);
 
     procedure Save(const APath: string);
   end;
