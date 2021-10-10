@@ -19,11 +19,11 @@ type
     ['{A0359347-2ED4-4141-88D4-F83BD6BEA2B4}']
     function GetId: Integer;
     function GetCategory: string;
-    function GetIsValidForFamilyFilter: Boolean;
+    function GetIsFamilyFriendly: Boolean;
 
     procedure SetId(AId: Integer);
     procedure SetCategory(const ACategory: string);
-    procedure SetIsValidForFamilyFilter(AValue: Boolean);
+    procedure SetIsFamilyFriendly(AValue: Boolean);
 
     procedure CloneFrom(AObj: ICategory);
   end;

@@ -122,15 +122,12 @@ type
     GridPanelLayout1: TGridPanelLayout;
     bSingleItemQuestionAudio: TButton;
     bSingleItemCorrectAudio: TButton;
-    lySingleItemAdditionalInfo: TLayout;
     pSingleItemId: TPanel;
     lSingleItemId: TLabel;
     pSingleItemCategory: TPanel;
     lSingleItemCategory: TLabel;
-    lySingleItemBase: TLayout;
     lySingleItemId: TLayout;
     lySingleItemCategory: TLayout;
-    Splitter4: TSplitter;
     eSingleItemId: TEdit;
     eSingleItemCategory: TEdit;
     sbLightStyle: TStyleBook;
@@ -246,6 +243,11 @@ type
     Layout3: TLayout;
     bRefreshQuestionId: TButton;
     aSaveProjectAndClose: TAction;
+    lyFamilyFilter: TLayout;
+    lyCategoryData: TLayout;
+    lyQuestionData: TLayout;
+    lFamilyFriendly: TLabel;
+    sFamilyFriendly: TSwitch;
     procedure lDarkModeClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormResize(Sender: TObject);
@@ -294,6 +296,7 @@ type
     procedure bRefreshQuestionIdClick(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
     procedure aSaveProjectAndCloseExecute(Sender: TObject);
+    procedure lFamilyFriendlyClick(Sender: TObject);
   private
     FAppCreated: Boolean;
     FChangingTab: Boolean;
@@ -955,6 +958,7 @@ begin
 
   FSelectedCategory.SetId(FSelectedQuestion.GetId);
   FSelectedCategory.SetCategory(eSingleItemCategory.Text.Trim);
+  FSelectedCategory.SetIsFamilyFriendly(sFamilyFriendly.IsChecked);
 
   if FSelectedQuestion.GetQuestionType = qtShortie then
     RefreshSelectedShortieQuestion
@@ -1719,6 +1723,7 @@ begin
   mSingleItemSuggestions.Text := FSelectedQuestion.GetSuggestions.Replace(',', ', ');
   eSingleItemId.Text := FSelectedCategory.GetId.ToString;
   eSingleItemCategory.Text := FSelectedCategory.GetCategory;
+  sFamilyFriendly.IsChecked := FSelectedCategory.GetIsFamilyFriendly;
 
   FChangingTab := True;
   try
@@ -1761,6 +1766,11 @@ end;
 procedure TFrmMain.lDarkModeOptionsClick(Sender: TObject);
 begin
   sDarkModeOptions.IsChecked := not sDarkModeOptions.IsChecked;
+end;
+
+procedure TFrmMain.lFamilyFriendlyClick(Sender: TObject);
+begin
+  sFamilyFriendly.IsChecked := not sFamilyFriendly.IsChecked;
 end;
 
 procedure TFrmMain.SetDarkMode(AEnabled: Boolean);
