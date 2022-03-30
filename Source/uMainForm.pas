@@ -44,6 +44,9 @@ type
     procedure ClearSelection;
     procedure SelectAll;
     function SelectedCount: Integer;
+    procedure SelectNext;
+    procedure SelectPrev;
+    function Selected: TQuestionScrollItem;
   end;
 
   TProjectScrollItem = class(TPanel)
@@ -73,6 +76,9 @@ type
     procedure ClearSelection;
     procedure SelectAll;
     function SelectedCount: Integer;
+    function Selected: TProjectScrollItem;
+    procedure SelectNext;
+    procedure SelectPrev;
   end;
 
   TAppTab = (atHomeBeforeImport, atHome, atQuestions, atSingleQuestion);
@@ -371,6 +377,11 @@ type
     procedure OnActivateStart;
     function GetFibbagePath(out APath: string): Boolean;
     procedure OnPostSaveClose;
+    procedure ProcessKeyDown_Questions(var Key: Word; Shift: TShiftState);
+    procedure ProcessKeyDown_QuestionsProject(var Key: Word;
+      Shift: TShiftState);
+    procedure RefreshProjectFormActions;
+    procedure RefreshQuestionsFormActions;
   public
     { Public declarations }
   end;
@@ -861,13 +872,15 @@ end;
 procedure TFrmMain.RemoveProjects;
 begin
   TDialogService.MessageDialog('Do you also want to remove questions?',
-    TMsgDlgType.mtConfirmation, [TMsgDlgBtn.mbYes, TMsgDlgBtn.mbNo], TMsgDlgBtn.mbNo, 0,
+    TMsgDlgType.mtConfirmation, [TMsgDlgBtn.mbYes, TMsgDlgBtn.mbNo, TMsgDlgBtn.mbCancel], TMsgDlgBtn.mbCancel, 0,
     procedure(const AResult: TModalResult)
     begin
       if AResult = mrYes then
         aRemoveProjectsAllData.Execute
+      else if AResult = mrNo then
+        aRemoveProjectsJustLastInfo.Execute
       else
-        aRemoveProjectsJustLastInfo.Execute;
+        Exit;
       aRemoveProjects.Enabled := False;
     end);
 end;
@@ -1377,14 +1390,13 @@ begin
   end;
 end;
 
-procedure TFrmMain.pmProjectsPopup(Sender: TObject);
+procedure TFrmMain.RefreshProjectFormActions;
 begin
   var selCnt := FProjectVisItems.SelectedCount;
 
   aRemoveProjects.Text := IfThen(selCnt > 1, 'Remove projects', 'Remove project');
   aRemoveProjects.Enabled := selCnt > 0;
   aEditProjectName.Enabled := Assigned(FLastClickedConfigurationToEdit) and (selCnt = 1);
-  aInitializeProject.Enabled := selCnt > 0;
   aOpenInWindowsExplorer.Visible := selCnt > 0;
   aInitializeProject.Enabled := selCnt = 1;
   aSetProjectAsActive.Visible := selCnt > 0;
@@ -1392,7 +1404,7 @@ begin
   MenuItem1.Visible := aOpenInWindowsExplorer.Visible or aSetProjectAsActive.Visible;
 end;
 
-procedure TFrmMain.pmShortieQuestionsPopup(Sender: TObject);
+procedure TFrmMain.RefreshQuestionsFormActions;
 var
   selCnt: Integer;
 begin
@@ -1414,6 +1426,16 @@ begin
     aCopyToShortieQuestions.Enabled := selCnt > 0;
     aMoveToShortieQuestions.Enabled := selCnt > 0;
   end;
+end;
+
+procedure TFrmMain.pmProjectsPopup(Sender: TObject);
+begin
+  RefreshProjectFormActions;
+end;
+
+procedure TFrmMain.pmShortieQuestionsPopup(Sender: TObject);
+begin
+  RefreshQuestionsFormActions;
 end;
 
 procedure TFrmMain.CreateNewShortieQuestion;
@@ -1695,9 +1717,48 @@ end;
 procedure TFrmMain.FormKeyDown(Sender: TObject; var Key: Word;
   var KeyChar: Char; Shift: TShiftState);
 begin
-  if tcEditTabs.ActiveTab <> tiQuestions then
-    Exit;
+  if tcEditTabs.ActiveTab = tiQuestionProjects then
+    ProcessKeyDown_QuestionsProject(Key, Shift)
+  else if tcEditTabs.ActiveTab = tiQuestions then
+    ProcessKeyDown_Questions(Key, Shift)
+end;
 
+procedure TFrmMain.ProcessKeyDown_QuestionsProject(var Key: Word; Shift: TShiftState);
+begin
+  if Key = vkDown then
+  begin
+    if FProjectVisItems.Selected = nil then
+      Exit;
+
+    if FProjectVisItems.Selected = FProjectVisItems[FProjectVisItems.Count - 1] then
+      sbxProjects.ViewportPosition := TPointF.Zero
+    else
+      sbxProjects.ScrollBy(0, -FProjectVisItems.Selected.Height);
+    FProjectVisItems.SelectNext;
+    FLastClickedConfigurationToEdit := FProjectVisItems.Selected;
+  end
+  else if Key = vkUp then
+  begin
+    if FProjectVisItems.Selected = nil then
+      Exit;
+
+    if FProjectVisItems.Selected = FProjectVisItems[0] then
+      sbxProjects.ViewportPosition := TPointF.Create(0, MaxInt)
+    else
+      sbxProjects.ScrollBy(0, FProjectVisItems.Selected.Height);
+    FProjectVisItems.SelectPrev;
+    FLastClickedConfigurationToEdit := FProjectVisItems.Selected;
+  end
+  else if Key = vkRight then
+    if FProjectVisItems.SelectedCount = 1 then
+    begin
+      RefreshProjectFormActions;
+      aInitializeProject.Execute;
+    end;
+end;
+
+procedure TFrmMain.ProcessKeyDown_Questions(var Key: Word; Shift: TShiftState);
+begin
   if (ssCtrl in Shift) and (Key = vkA) then
   begin
     if tcQuestions.ActiveTab = tiShortieQuestions then
@@ -1705,6 +1766,67 @@ begin
     else if tcQuestions.ActiveTab = tiFinalQuestions then
       FFinalVisItems.SelectAll;
   end;
+
+  if Key = vkDown then
+  begin
+    if tcQuestions.ActiveTab = tiShortieQuestions then
+    begin
+      if FShortieVisItems.Selected = nil then
+        Exit;
+
+      if FShortieVisItems.Selected = FShortieVisItems[FShortieVisItems.Count - 1] then
+        sbxShortieQuestions.ViewportPosition := TPointF.Zero
+      else
+        sbxShortieQuestions.ScrollBy(0, -FShortieVisItems.Selected.Height);
+      FShortieVisItems.SelectNext;
+      FLastClickedItemToEdit := FShortieVisItems.Selected;
+    end
+    else if tcQuestions.ActiveTab = tiFinalQuestions then
+    begin
+      if FFinalVisItems.Selected = nil then
+        Exit;
+
+      if FFinalVisItems.Selected = FFinalVisItems[FFinalVisItems.Count - 1] then
+        sbxShortieQuestions.ViewportPosition := TPointF.Zero
+      else
+        sbxShortieQuestions.ScrollBy(0, -FFinalVisItems.Selected.Height);
+      FFinalVisItems.SelectNext;
+      FLastClickedItemToEdit := FFinalVisItems.Selected;
+    end;
+  end
+  else if Key = vkUp then
+  begin
+    if tcQuestions.ActiveTab = tiShortieQuestions then
+    begin
+      if FShortieVisItems.Selected = nil then
+        Exit;
+
+      if FShortieVisItems.Selected = FShortieVisItems[0] then
+        sbxShortieQuestions.ViewportPosition := TPointF.Create(0, MaxInt)
+      else
+        sbxShortieQuestions.ScrollBy(0, FShortieVisItems.Selected.Height);
+      FShortieVisItems.SelectPrev;
+      FLastClickedItemToEdit := FShortieVisItems.Selected;
+    end
+    else if tcQuestions.ActiveTab = tiFinalQuestions then
+    begin
+      if FFinalVisItems.Selected = nil then
+        Exit;
+
+      if FFinalVisItems.Selected = FFinalVisItems[0] then
+        sbxShortieQuestions.ViewportPosition := TPointF.Create(0, MaxInt)
+      else
+        sbxShortieQuestions.ScrollBy(0, FFinalVisItems.Selected.Height);
+      FFinalVisItems.SelectPrev;
+      FLastClickedItemToEdit := FFinalVisItems.Selected;
+    end;
+  end
+  else if Key = vkRight then
+    if ((tcQuestions.ActiveTab = tiShortieQuestions) and (FShortieVisItems.SelectedCount = 1)) or ((tcQuestions.ActiveTab = tiFinalQuestions) and (FFinalVisItems.SelectedCount = 1)) then
+    begin
+      RefreshQuestionsFormActions;
+      aEditQuestion.Execute;
+    end;
 end;
 
 procedure TFrmMain.FormResize(Sender: TObject);
@@ -1912,12 +2034,48 @@ begin
     item.Selected := True;
 end;
 
+function TQuestionScrollItems.Selected: TQuestionScrollItem;
+begin
+  for var item in Self do
+    if item.Selected then
+      Exit(item);
+  Result := nil;
+end;
+
 function TQuestionScrollItems.SelectedCount: Integer;
 begin
   Result := 0;
   for var item in Self do
     if item.Selected then
       Inc(Result);
+end;
+
+procedure TQuestionScrollItems.SelectNext;
+begin
+  for var idx := 0 to Count - 1 do
+    if Self[idx].Selected then
+    begin
+      ClearSelection;
+      if idx = Count - 1 then
+        Self[0].SetSelected(True)
+      else
+        Self[idx + 1].SetSelected(True);
+      Break;
+    end;
+end;
+
+procedure TQuestionScrollItems.SelectPrev;
+begin
+  for var idx := 0 to Count - 1 do
+    if Self[idx].Selected then
+    begin
+      ClearSelection;
+      if idx = 0 then
+        Self[Count - 1].SetSelected(True)
+      else
+        Self[idx - 1].SetSelected(True);
+      Break;
+    end;
 end;
 
 { TProjectScrollItem }
@@ -2008,12 +2166,48 @@ begin
     item.Selected := True;
 end;
 
+function TProjectScrollItems.Selected: TProjectScrollItem;
+begin
+  for var item in Self do
+    if item.Selected then
+      Exit(item);
+  Result := nil;
+end;
+
 function TProjectScrollItems.SelectedCount: Integer;
 begin
   Result := 0;
   for var item in Self do
     if item.Selected then
       Inc(Result);
+end;
+
+procedure TProjectScrollItems.SelectNext;
+begin
+  for var idx := 0 to Count - 1 do
+    if Self[idx].Selected then
+    begin
+      ClearSelection;
+      if idx = Count - 1 then
+        Self[0].SetSelected(True)
+      else
+        Self[idx + 1].SetSelected(True);
+      Break;
+    end;
+end;
+
+procedure TProjectScrollItems.SelectPrev;
+begin
+  for var idx := 0 to Count - 1 do
+    if Self[idx].Selected then
+    begin
+      ClearSelection;
+      if idx = 0 then
+        Self[Count - 1].SetSelected(True)
+      else
+        Self[idx - 1].SetSelected(True);
+      Break;
+    end;
 end;
 
 initialization
