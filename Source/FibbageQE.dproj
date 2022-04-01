@@ -173,6 +173,10 @@
         <DCCReference Include="uContentConfiguration.pas"/>
         <DCCReference Include="uAsyncAction.pas"/>
         <DCCReference Include="uProjectActivator.pas"/>
+        <DCCReference Include="uUserDialog.pas">
+            <Form>UserDialog</Form>
+            <FormType>fmx</FormType>
+        </DCCReference>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

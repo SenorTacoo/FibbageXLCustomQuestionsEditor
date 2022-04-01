@@ -34,6 +34,10 @@ type
     procedure SetLogService(const Value: string);
     function GetFibbagePath: string;
     procedure SetFibbagePath(const Value: string);
+    function GetShowInfoAboutDuplicatedCategories: Boolean;
+    procedure SetShowInfoAboutDuplicatedCategories(const Value: Boolean);
+    function GetShowInfoAboutTooFewSuggestions: Boolean;
+    procedure SetShowInfoAboutTooFewSuggestions(const Value: Boolean);
   public
     constructor Create;
     destructor Destroy; override;
@@ -45,6 +49,8 @@ type
     property LogBroker: string read GetLogBroker write SetLogBroker;
     property LogService: string read GetLogService write SetLogService;
     property FibbagePath: string read GetFibbagePath write SetFibbagePath;
+    property ShowInfoAboutDuplicatedCategories: Boolean read GetShowInfoAboutDuplicatedCategories write SetShowInfoAboutDuplicatedCategories;
+    property ShowInfoAboutTooFewSuggestions: Boolean read GetShowInfoAboutTooFewSuggestions write SetShowInfoAboutTooFewSuggestions;
   end;
 
 implementation
@@ -111,6 +117,16 @@ begin
   Result := FIniFile.ReadString('Audio', 'OutputDeviceName', '');
 end;
 
+function TAppConfig.GetShowInfoAboutDuplicatedCategories: Boolean;
+begin
+  Result := FIniFile.ReadBool('General', 'ShowInfoAboutDuplicatedCategories', True);
+end;
+
+function TAppConfig.GetShowInfoAboutTooFewSuggestions: Boolean;
+begin
+  Result := FIniFile.ReadBool('General', 'ShowInfoAboutTooFewSuggestions', True);
+end;
+
 procedure TAppConfig.SetDarkModeEnabled(const Value: Boolean);
 begin
   FIniFile.WriteBool('Style', 'DarkMode', Value);
@@ -144,6 +160,16 @@ end;
 procedure TAppConfig.SetOutputDeviceName(const Value: string);
 begin
   FIniFile.WriteString('Audio', 'OutputDeviceName', Value);
+end;
+
+procedure TAppConfig.SetShowInfoAboutDuplicatedCategories(const Value: Boolean);
+begin
+  FIniFile.WriteBool('General', 'ShowInfoAboutDuplicatedCategories', Value);
+end;
+
+procedure TAppConfig.SetShowInfoAboutTooFewSuggestions(const Value: Boolean);
+begin
+  FIniFile.WriteBool('General', 'ShowInfoAboutTooFewSuggestions', Value);
 end;
 
 end.

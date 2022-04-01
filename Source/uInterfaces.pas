@@ -109,13 +109,18 @@ type
   IContentConfiguration = interface
     ['{B756232F-2FC1-4BD9-8CDB-76D33AC44D4B}']
     function Initialize(const APath: string): Boolean;
-    procedure Save(const APath: string);
+    procedure Save(const APath: string); overload;
+    procedure Save; overload;
 
     procedure SetName(const AName: string);
     procedure SetPath(const APath: string);
+    procedure SetShowCategoryDuplicated(AValue: Boolean);
+    procedure SetShowTooFewSuggestions(AValue: Boolean);
 
     function GetName: string;
     function GetPath: string;
+    function GetShowCategoryDuplicated: Boolean;
+    function GetShowTooFewSuggestions: Boolean;
   end;
 
   TOnContentInitialized = procedure of object;

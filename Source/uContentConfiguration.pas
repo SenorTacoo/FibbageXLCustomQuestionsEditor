@@ -19,12 +19,17 @@ type
 
     procedure SetName(const AName: string);
     procedure SetPath(const APath: string);
+    procedure SetShowCategoryDuplicated(AValue: Boolean);
+    procedure SetShowTooFewSuggestions(AValue: Boolean);
 
     function GetName: string;
     function GetPath: string;
+    function GetShowCategoryDuplicated: Boolean;
+    function GetShowTooFewSuggestions: Boolean;
 
     function Initialize(const APath: string): Boolean;
-    procedure Save(const APath: string);
+    procedure Save(const APath: string); overload;
+    procedure Save; overload;
   end;
 
 implementation
@@ -56,6 +61,16 @@ begin
   Result := FRawCfg.Values['ProjectPath'];
 end;
 
+function TContentConfiguration.GetShowCategoryDuplicated: Boolean;
+begin
+  Result := StrToBoolDef(FRawCfg.Values['ShowCategoryDuplicated'], True);
+end;
+
+function TContentConfiguration.GetShowTooFewSuggestions: Boolean;
+begin
+  Result := StrToBoolDef(FRawCfg.Values['ShowTooFewSuggestions'], True);
+end;
+
 function TContentConfiguration.Initialize(const APath: string): Boolean;
 begin
   Result := False;
@@ -75,6 +90,11 @@ begin
   FRawCfg.SaveToFile(TPath.Combine(APath, '.fcqeinfo'));
 end;
 
+procedure TContentConfiguration.Save;
+begin
+  Save(GetPath);
+end;
+
 procedure TContentConfiguration.SetName(const AName: string);
 begin
   FRawCfg.Values['ProjectName'] := AName;
@@ -83,6 +103,16 @@ end;
 procedure TContentConfiguration.SetPath(const APath: string);
 begin
   FRawCfg.Values['ProjectPath'] := APath;
+end;
+
+procedure TContentConfiguration.SetShowCategoryDuplicated(AValue: Boolean);
+begin
+  FRawCfg.Values['ShowCategoryDuplicated'] := BoolToStr(AValue, True);
+end;
+
+procedure TContentConfiguration.SetShowTooFewSuggestions(AValue: Boolean);
+begin
+  FRawCfg.Values['ShowTooFewSuggestions'] := BoolToStr(AValue, True);
 end;
 
 end.

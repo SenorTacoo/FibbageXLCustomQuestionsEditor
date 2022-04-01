@@ -17,7 +17,8 @@ uses
   NewACDSAudio, System.Generics.Collections, uRecordForm, FMX.ListBox, 
   System.Messaging, System.DateUtils, uLog, uCategoriesLoader,
   FMX.Menus, System.StrUtils, uGetTextDlg, FMX.Objects, FMX.DialogService, uAsyncAction,
-  FMX.Effects, Winapi.Windows, Winapi.ShellAPI, FMX.Platform.Win, Grijjy.CloudLogging;
+  FMX.Effects, Winapi.Windows, Winapi.ShellAPI, FMX.Platform.Win, Grijjy.CloudLogging,
+  uUserDialog;
 
 type
   TQuestionScrollItem = class(TPanel)
@@ -256,6 +257,9 @@ type
     sFamilyFriendly: TSwitch;
     Splitter2: TSplitter;
     Splitter3: TSplitter;
+    cbShowCategoryDuplicatedInfo: TCheckBox;
+    cbShowDialogAboutTooFewSuggestions: TCheckBox;
+    rDim: TRectangle;
     procedure lDarkModeClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormResize(Sender: TObject);
@@ -382,6 +386,11 @@ type
       Shift: TShiftState);
     procedure RefreshProjectFormActions;
     procedure RefreshQuestionsFormActions;
+    function IsCategoryDuplicated: Boolean;
+    function ShowInfoAboutDuplicatedCategories: Boolean;
+    function ShowInfoAboutTooFewSuggestions: Boolean;
+    function IsTooFewSuggestions: Boolean;
+    function GetSingleQuestionSuggestions: string;
   public
     { Public declarations }
   end;
@@ -904,6 +913,8 @@ begin
     Exit;
 
   TAppConfig.GetInstance.FibbagePath := eSettingsGamePath.Text;
+  TAppConfig.GetInstance.ShowInfoAboutDuplicatedCategories := cbShowCategoryDuplicatedInfo.IsChecked;
+  TAppConfig.GetInstance.ShowInfoAboutTooFewSuggestions := cbShowDialogAboutTooFewSuggestions.IsChecked;
 
   GoToHome;
 end;
@@ -957,17 +968,120 @@ begin
   TAsyncAction.Create(OnPreSave, OnPostSave, SaveProc).Start;
 end;
 
+function TFrmMain.IsTooFewSuggestions: Boolean;
+const
+  OPTIMAL_NR_OF_SUGGESTIONS = 17;
+begin
+  var suggestions := TStringList.Create;
+  try
+    suggestions.StrictDelimiter := True;
+    suggestions.Delimiter := ',';
+    suggestions.DelimitedText := GetSingleQuestionSuggestions;
+    Result := suggestions.Count < OPTIMAL_NR_OF_SUGGESTIONS;
+  finally
+    suggestions.Free;
+  end;
+end;
+
+function TFrmMain.IsCategoryDuplicated: Boolean;
+var
+  allQuestions: TList<IQuestion>;
+begin
+  Result := False;
+  if eSingleItemCategory.Text.Trim.IsEmpty then
+    Exit;
+
+  if FSelectedQuestion.GetQuestionType = qtShortie then
+    allQuestions := FContent.Questions.ShortieQuestions
+  else
+    allQuestions := FContent.Questions.FinalQuestions;
+
+  for var question in allQuestions do
+    if question = FSelectedQuestion then
+      Continue
+    else if SameText(question.GetCategory, eSingleItemCategory.Text.Trim) then
+      Exit(True);
+end;
+
+function TFrmMain.ShowInfoAboutTooFewSuggestions: Boolean;
+var
+  dontAskAgain: Boolean;
+begin
+  Result := False;
+  rDim.Visible := True;
+  var dlg := TUserDialog.Create(Self);
+  try
+    if dlg.MakeInfo('Too few suggestions, the game can freeze because of this. The optimal number of suggestions is 17 (Max number of players * 2 + 1). Continue?', dontAskAgain) then
+    begin
+      Result := True;
+      if dontAskAgain then
+        TAppConfig.GetInstance.ShowInfoAboutTooFewSuggestions := False;
+    end;
+  finally
+    dlg.Free;
+    rDim.Visible := False;
+  end;
+end;
+
+function TFrmMain.ShowInfoAboutDuplicatedCategories: Boolean;
+var
+  dontAskAgain: Boolean;
+begin
+  Result := False;
+  rDim.Visible := True;
+  var dlg := TUserDialog.Create(Self);
+  try
+    if dlg.MakeInfo('Found question with the same category, you might experience the same category during "Pick category" part in the game. Continue?', dontAskAgain) then
+    begin
+      Result := True;
+      if dontAskAgain then
+        TAppConfig.GetInstance.ShowInfoAboutDuplicatedCategories := False;
+    end;
+  finally
+    dlg.Free;
+    rDim.Visible := False;
+  end;
+end;
+
+function TFrmMain.GetSingleQuestionSuggestions: string;
+begin
+  var suggestions := TStringList.Create;
+  try
+    suggestions.StrictDelimiter := True;
+    suggestions.Delimiter := ',';
+    suggestions.DelimitedText := mSingleItemSuggestions.Text.Replace(', ', ',').Trim;
+
+    for var idx := suggestions.Count - 1 downto 0 do
+    begin
+      suggestions[idx] := suggestions[idx].Trim;
+      if suggestions[idx].IsEmpty then
+        suggestions.Delete(idx);
+    end;
+    Result := suggestions.DelimitedText;
+  finally
+    suggestions.Free;
+  end;
+end;
+
 procedure TFrmMain.aSaveQuestionChangesExecute(Sender: TObject);
 begin
   if FChangingTab then
     Exit;
+
+  if TAppConfig.GetInstance.ShowInfoAboutDuplicatedCategories and IsCategoryDuplicated then
+    if not ShowInfoAboutDuplicatedCategories then
+      Exit;
+
+  if TAppConfig.GetInstance.ShowInfoAboutTooFewSuggestions and IsTooFewSuggestions then
+    if not ShowInfoAboutTooFewSuggestions then
+      Exit;
 
   FQuestionsChanged := True;
 
   FSelectedQuestion.SetQuestion(mSingleItemQuestion.Text.Trim);
   FSelectedQuestion.SetAnswer(mSingleItemAnswer.Text.Trim);
   FSelectedQuestion.SetAlternateSpelling(mSingleItemAlternateSpelling.Text.Replace(', ', ',').Trim);
-  FSelectedQuestion.SetSuggestions(mSingleItemSuggestions.Text.Replace(', ', ',').Trim);
+  FSelectedQuestion.SetSuggestions(GetSingleQuestionSuggestions);
 
   FSelectedCategory.SetId(StrToInt(eSingleItemId.Text));
   FSelectedCategory.SetCategory(eSingleItemCategory.Text.Trim);
@@ -1601,6 +1715,8 @@ begin
   FChangingTab := True;
   try
     eSettingsGamePath.Text := TAppConfig.GetInstance.FibbagePath;
+    cbShowCategoryDuplicatedInfo.IsChecked := TAppConfig.GetInstance.ShowInfoAboutDuplicatedCategories;
+    cbShowDialogAboutTooFewSuggestions.IsChecked := TAppConfig.GetInstance.ShowInfoAboutTooFewSuggestions;
 
     aGoToSettings.Execute;
   finally

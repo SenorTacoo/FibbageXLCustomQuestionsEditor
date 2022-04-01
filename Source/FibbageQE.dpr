@@ -17,7 +17,8 @@ uses
   uGetTextDlg in 'uGetTextDlg.pas' {GetTextDlg},
   uContentConfiguration in 'uContentConfiguration.pas',
   uAsyncAction in 'uAsyncAction.pas',
-  uProjectActivator in 'uProjectActivator.pas';
+  uProjectActivator in 'uProjectActivator.pas',
+  uUserDialog in 'uUserDialog.pas' {UserDialog};
 
 {$R *.res}
 
