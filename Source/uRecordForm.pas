@@ -7,7 +7,7 @@ uses
   FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs, NewAC_DSP,
   ACS_Classes, NewACIndicators, FMX.Controls.Presentation, FMX.StdCtrls,
   ACS_Vorbis, ACS_DXAudio, FMX.ListBox, uInterfaces, FMX.Layouts,
-  ACS_Converters, NewACDSAudio, FMX.Media, uConfig, System.IOUtils;
+  ACS_Converters, NewACDSAudio, FMX.Media, uConfig, System.IOUtils, System.Math;
 
 type
   TAudioType = (atQuestion, atAnswer, atBumper, atRecorded);
@@ -250,7 +250,7 @@ begin
       DisablePlay
     else
       cbAudioOutput.ItemIndex := itemIndex;
-    cbAudioOutput.ItemWidth := itemWidth;
+    cbAudioOutput.ItemWidth := Max(itemWidth, cbAudioOutput.Width);
     cbAudioOutput.ItemHeight := cbAudioOutput.Canvas.TextHeight('Yy');
   finally
     cbAudioOutput.Items.EndUpdate;
@@ -273,7 +273,7 @@ begin
       DisableRecord
     else
       cbAudioInput.ItemIndex := itemIndex;
-    cbAudioInput.ItemWidth := itemWidth;
+    cbAudioInput.ItemWidth := Max(itemWidth, cbAudioInput.Width);
     cbAudioInput.ItemHeight := cbAudioInput.Canvas.TextHeight('Yy');
   finally
     cbAudioInput.Items.EndUpdate;
