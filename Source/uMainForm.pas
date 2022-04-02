@@ -496,6 +496,7 @@ begin
     Exit;
 
   var name := FLastClickedConfiguration.OrgConfiguration.GetName;
+  rDim.Visible := True;
   var dlg := TGetTextDlg.Create(Self);
   try
     if not dlg.GetText('Enter project name:', name) then
@@ -509,6 +510,7 @@ begin
       FLastClickedConfiguration.OrgConfiguration.Save(FLastClickedConfiguration.OrgConfiguration.GetPath);
   finally
     dlg.Free;
+    rDim.Visible := False;
   end;
 end;
 
@@ -1210,11 +1212,13 @@ end;
 
 function TFrmMain.GetProjectName(out AName: string): Boolean;
 begin
+  rDim.Visible := True;
   var dlg := TGetTextDlg.Create(Self);
   try
     Result := dlg.GetText('Enter new project name:', AName);
   finally
     dlg.Free;
+    rDim.Visible := False;
   end;
 end;
 
@@ -1748,31 +1752,37 @@ end;
 
 procedure TFrmMain.bSingleItemBumperAudioClick(Sender: TObject);
 begin
+  rDim.Visible := True;
   var form := TRecordForm.Create(Self);
   try
     form.EditBumperAudio(FSelectedQuestion);
   finally
     form.Free;
+    rDim.Visible := False;
   end;
 end;
 
 procedure TFrmMain.bSingleItemCorrectAudioClick(Sender: TObject);
 begin
+  rDim.Visible := True;
   var form := TRecordForm.Create(Self);
   try
     form.EditAnswerAudio(FSelectedQuestion);
   finally
     form.Free;
+    rDim.Visible := False;
   end;
 end;
 
 procedure TFrmMain.bSingleItemQuestionAudioClick(Sender: TObject);
 begin
+  rDim.Visible := True;
   var form := TRecordForm.Create(Self);
   try
     form.EditQuestionAudio(FSelectedQuestion);
   finally
     form.Free;
+    rDim.Visible := False;
   end;
 end;
 
