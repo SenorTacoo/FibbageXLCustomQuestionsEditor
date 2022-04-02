@@ -48,6 +48,7 @@ type
     procedure SelectNext;
     procedure SelectPrev;
     function Selected: TQuestionScrollItem;
+    procedure SelectQuestionWithId(AId: Integer);
   end;
 
   TProjectScrollItem = class(TPanel)
@@ -387,16 +388,25 @@ type
     procedure RefreshProjectFormActions;
     procedure RefreshQuestionsFormActions;
     function IsCategoryDuplicated: Boolean;
-    function ShowInfoAboutDuplicatedCategories: Boolean;
-    function ShowInfoAboutTooFewSuggestions: Boolean;
+    function ShowInfoAboutDuplicatedCategories(const AInfo: string): Boolean;
+    function ShowInfoAboutTooFewSuggestions(const AInfo: string): Boolean;
     function IsTooFewSuggestions: Boolean;
     function GetSingleQuestionSuggestions: string;
+    function GetFirstDuplicatedCategoryQuestionId(out AIsShortie: Boolean; out AId: Integer): Boolean;
+    function GetFirstTooFewSuggestionsQuestionId(out AIsShortie: Boolean;
+      out AId: Integer): Boolean;
+    function CheckForDuplicatedCategoriesPreSave: Boolean;
+    function CheckForTooFewSuggestions: Boolean;
+    function ShouldSaveProject: Boolean;
   public
     { Public declarations }
   end;
 
 var
   FrmMain: TFrmMain;
+
+const
+  OPTIMAL_NR_OF_SUGGESTIONS = 17;
 
 implementation
 
@@ -923,6 +933,10 @@ end;
 
 procedure TFrmMain.aSaveProjectAndCloseExecute(Sender: TObject);
 begin
+  if not ShouldSaveProject then
+    Exit;
+    
+  FQuestionsChanged := False;
   TAsyncAction.Create(OnPreSave, OnPostSaveClose, SaveProc).Start;
 end;
 
@@ -936,8 +950,11 @@ procedure TFrmMain.aSaveProjectAsExecute(Sender: TObject);
 var
   path: string;
 begin
-  if not GetProjectPath(path) then
+  if not ShouldSaveProject then
+    Exit
+  else if not GetProjectPath(path) then
     Exit;
+
   FSelectedConfiguration.SetPath(path);
 
   TAsyncAction.Create(OnPreSaveAs, OnPostSaveAs, SaveProc).Start;
@@ -960,19 +977,160 @@ begin
   FQuestionsChanged := False;
 end;
 
+function TFrmMain.GetFirstTooFewSuggestionsQuestionId(out AIsShortie: Boolean; out AId: Integer): Boolean;
+begin
+  Result := False;
+  for var idx := 0 to FContent.Questions.ShortieQuestions.Count - 1 do
+  begin
+    var fQuestion := FContent.Questions.ShortieQuestions[idx];
+    var suggestions := TStringList.Create;
+    try
+      suggestions.StrictDelimiter := True;
+      suggestions.DelimitedText := fQuestion.GetSuggestions;
+      if suggestions.Count < OPTIMAL_NR_OF_SUGGESTIONS then
+      begin
+        AIsShortie := True;
+        AId := fQuestion.GetId;
+        Exit(True);
+      end;
+    finally
+      suggestions.Free;
+    end;
+  end;
+
+  for var idx := 0 to FContent.Questions.FinalQuestions.Count - 1 do
+  begin
+    var fQuestion := FContent.Questions.FinalQuestions[idx];
+    var suggestions := TStringList.Create;
+    try
+      suggestions.StrictDelimiter := True;
+      suggestions.DelimitedText := fQuestion.GetSuggestions;
+      if suggestions.Count < OPTIMAL_NR_OF_SUGGESTIONS then
+      begin
+        AIsShortie := False;
+        AId := fQuestion.GetId;
+        Exit(True);
+      end;
+    finally
+      suggestions.Free;
+    end;
+  end;
+end;
+
+function TFrmMain.GetFirstDuplicatedCategoryQuestionId(out AIsShortie: Boolean; out AId: Integer): Boolean;
+begin
+  Result := False;
+  for var idx := 0 to FContent.Questions.ShortieQuestions.Count - 2 do
+    for var jdx := idx + 1 to FContent.Questions.ShortieQuestions.Count - 1 do
+    begin
+      var fQuestion := FContent.Questions.ShortieQuestions[idx];
+      var sQuestion := FContent.Questions.ShortieQuestions[jdx];
+
+      if fQuestion.GetCategory.Equals(sQuestion.GetCategory) then
+      begin
+        AIsShortie := True;
+        AId := fQuestion.GetId;
+        Exit(True);
+      end;
+    end;
+
+  for var idx := 0 to FContent.Questions.FinalQuestions.Count - 2 do
+    for var jdx := idx + 1 to FContent.Questions.FinalQuestions.Count - 1 do
+    begin
+      var fQuestion := FContent.Questions.FinalQuestions[idx];
+      var sQuestion := FContent.Questions.FinalQuestions[jdx];
+
+      if fQuestion.GetCategory.Equals(sQuestion.GetCategory) then
+      begin
+        AIsShortie := False;
+        AId := fQuestion.GetId;
+        Exit(True);
+      end;
+    end;
+end;
+
 procedure TFrmMain.SaveProc;
 begin
   FContent.Save;
 end;
 
+function TFrmMain.CheckForDuplicatedCategoriesPreSave: Boolean;
+var
+  isShortie: Boolean;
+  qId: Integer;
+begin
+  Result := True;
+  if TAppConfig.GetInstance.ShowInfoAboutDuplicatedCategories and GetFirstDuplicatedCategoryQuestionId(isShortie, qId) then
+    if not ShowInfoAboutDuplicatedCategories('Found questions with the same category, you might experience the same category during "Pick category" part in the game. Continue?') then
+    begin
+      GoToAllQuestions;
+
+      if isShortie then
+      begin
+        GoToShortieQuestions;
+        FShortieVisItems.SelectQuestionWithId(qId);
+        sbxShortieQuestions.ViewportPosition := TPointF.Create(0, FShortieVisItems.Selected.Top);
+        FLastClickedItemToEdit := FShortieVisItems.Selected;
+      end
+      else
+      begin
+        GoToFinalQuestions;
+        FFinalVisItems.SelectQuestionWithId(qId);
+        sbxFinalQuestions.ViewportPosition := TPointF.Create(0, FFinalVisItems.Selected.Top);
+        FLastClickedItemToEdit := FFinalVisItems.Selected;
+      end;
+      Result := False;
+    end;
+end;
+
+function TFrmMain.CheckForTooFewSuggestions: Boolean;
+var
+  isShortie: Boolean;
+  qId: Integer;
+begin
+  Result := True;
+  if TAppConfig.GetInstance.ShowInfoAboutTooFewSuggestions and GetFirstTooFewSuggestionsQuestionId(isShortie, qId) then
+    if not ShowInfoAboutTooFewSuggestions('Found question with too few suggestions, the game can freeze because of this. The optimal number of suggestions is 17 (Max number of players * 2 + 1). Continue?') then
+    begin
+      GoToAllQuestions;
+
+      if isShortie then
+      begin
+        GoToShortieQuestions;
+        FShortieVisItems.SelectQuestionWithId(qId);
+        sbxShortieQuestions.ViewportPosition := TPointF.Create(0, FShortieVisItems.Selected.Top);
+        FLastClickedItemToEdit := FShortieVisItems.Selected;
+      end
+      else
+      begin
+        GoToFinalQuestions;
+        FFinalVisItems.SelectQuestionWithId(qId);
+        sbxFinalQuestions.ViewportPosition := TPointF.Create(0, FFinalVisItems.Selected.Top);
+        FLastClickedItemToEdit := FFinalVisItems.Selected;
+      end;
+      Result := False;
+    end;
+end;
+
+function TFrmMain.ShouldSaveProject: Boolean;
+begin            
+  Result := False;
+  if not CheckForDuplicatedCategoriesPreSave then
+    Exit
+  else if not CheckForTooFewSuggestions then
+    Exit;
+  Result := True;
+end;
+
 procedure TFrmMain.aSaveProjectExecute(Sender: TObject);
 begin
+  if not ShouldSaveProject then
+    Exit;
+
   TAsyncAction.Create(OnPreSave, OnPostSave, SaveProc).Start;
 end;
 
 function TFrmMain.IsTooFewSuggestions: Boolean;
-const
-  OPTIMAL_NR_OF_SUGGESTIONS = 17;
 begin
   var suggestions := TStringList.Create;
   try
@@ -1005,7 +1163,7 @@ begin
       Exit(True);
 end;
 
-function TFrmMain.ShowInfoAboutTooFewSuggestions: Boolean;
+function TFrmMain.ShowInfoAboutTooFewSuggestions(const AInfo: string): Boolean;
 var
   dontAskAgain: Boolean;
 begin
@@ -1013,7 +1171,7 @@ begin
   rDim.Visible := True;
   var dlg := TUserDialog.Create(Self);
   try
-    if dlg.MakeInfo('Too few suggestions, the game can freeze because of this. The optimal number of suggestions is 17 (Max number of players * 2 + 1). Continue?', dontAskAgain) then
+    if dlg.MakeInfo(AInfo, dontAskAgain) then
     begin
       Result := True;
       if dontAskAgain then
@@ -1025,7 +1183,7 @@ begin
   end;
 end;
 
-function TFrmMain.ShowInfoAboutDuplicatedCategories: Boolean;
+function TFrmMain.ShowInfoAboutDuplicatedCategories(const AInfo: string): Boolean;
 var
   dontAskAgain: Boolean;
 begin
@@ -1033,7 +1191,7 @@ begin
   rDim.Visible := True;
   var dlg := TUserDialog.Create(Self);
   try
-    if dlg.MakeInfo('Found question with the same category, you might experience the same category during "Pick category" part in the game. Continue?', dontAskAgain) then
+    if dlg.MakeInfo(AInfo, dontAskAgain) then
     begin
       Result := True;
       if dontAskAgain then
@@ -1071,11 +1229,11 @@ begin
     Exit;
 
   if TAppConfig.GetInstance.ShowInfoAboutDuplicatedCategories and IsCategoryDuplicated then
-    if not ShowInfoAboutDuplicatedCategories then
+    if not ShowInfoAboutDuplicatedCategories('Found question with the same category, you might experience the same category during "Pick category" part in the game. Continue?') then
       Exit;
 
   if TAppConfig.GetInstance.ShowInfoAboutTooFewSuggestions and IsTooFewSuggestions then
-    if not ShowInfoAboutTooFewSuggestions then
+    if not ShowInfoAboutTooFewSuggestions('Too few suggestions, the game can freeze because of this. The optimal number of suggestions is 17 (Max number of players * 2 + 1). Continue?') then
       Exit;
 
   FQuestionsChanged := True;
@@ -1792,10 +1950,9 @@ begin
   begin
     var res := False;
     TDialogService.MessageDialog('Save changes?', TMsgDlgType.mtInformation,
-      [TMsgDlgBtn.mbYes, TMsgDlgBtn.mbNo], TMsgDlgBtn.mbCancel, 0,
+      [TMsgDlgBtn.mbYes, TMsgDlgBtn.mbNo, TMsgDlgBtn.mbCancel], TMsgDlgBtn.mbCancel, 0,
       procedure (const AResult: TModalResult)
       begin
-        FQuestionsChanged := False;
         case AResult of
           mrYes: aSaveProjectAndClose.Execute;
           mrNo: res := True;
@@ -2200,6 +2357,17 @@ begin
         Self[Count - 1].SetSelected(True)
       else
         Self[idx - 1].SetSelected(True);
+      Break;
+    end;
+end;
+
+procedure TQuestionScrollItems.SelectQuestionWithId(AId: Integer);
+begin
+  for var question in Self do
+    if question.OrgQuestion.GetId = AId then
+    begin
+      ClearSelection;
+      question.SetSelected(True);
       Break;
     end;
 end;
